@@ -1,166 +1,22 @@
-# Global
-from os.path import join, dirname, abspath
-import random
+# System Imports
+from collections import defaultdict
+import datetime
 import io
 import json
-import datetime
-from collections import defaultdict
 import os
+import random
 # Django
-from django.contrib.auth.models import User, Group
-from django_filters import rest_framework as filters
 from django.db.models import Count
-# REST
-from rest_framework import status
-from rest_framework import viewsets
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.response import Response
+# Django Rest Framework
 from rest_framework.views import APIView
-from rest_framework import serializers
-# Tarteel
-from restapi.serializers import UserSerializer, GroupSerializer, \
-    AnnotatedRecordingSerializerPost, AnnotatedRecordingSerializerGet, \
-    DemographicInformationSerializer, AnnotatedRecordingSerializer
-from restapi.models import AnnotatedRecording, DemographicInformation
+from rest_framework.response import Response
+# Tarteel Apps
 from audio.views import get_low_ayah_count, _sort_recitations_dict_into_lists
+from restapi.models import AnnotatedRecording, DemographicInformation
 from evaluation.models import Evaluation
-from evaluation.serializers import EvaluationSerializer
-from evaluation.views import get_low_evaluation_count
 
-# =============================================== #
-#           Constant Global Definitions           #
-# =============================================== #
-
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TOTAL_AYAH_NUM = 6236
-BASE_DIR = dirname(dirname(abspath(__file__)))
-INT_NA_VALUE = -1
-STRING_NA_VALUE = "N/A"
-
-class AnnotatedRecordingList(APIView):
-    parser_classes = (MultiPartParser, FormParser)
-
-    def get(self, request, format=None):
-        """Returns the last 10 recordings received."""
-        recordings = AnnotatedRecording.objects.all().order_by('-timestamp')[:10]
-        serializer = AnnotatedRecordingSerializerGet(recordings, many=True)
-        return Response(serializer.data)
-
-    def post(self, request, *args, **kwargs):
-        """Creates a recording record in the DB using a serializer. Attempts
-            to link a demographic if a session key exists.
-        """
-
-        # User tracking - Ensure there is always a session key.
-        session_key = request.session.session_key
-
-        if hasattr(request.data, "session_id"):
-            session_key = request.data["session_id"]
-        elif not session_key:
-            request.session.create()
-            session_key = request.session.session_key
-
-        # Check if demographic with key exists (default to None)
-        # TODO(piraka9011): Associate with user login once auth is developed.
-        request.data['associated_demographic'] = None
-        demographic = DemographicInformation.objects.filter(session_id=session_key).order_by('-timestamp')
-        if demographic.exists():
-            request.data['associated_demographic'] = demographic[0].id
-        new_recording = AnnotatedRecordingSerializerPost(data=request.data)
-        print("Received recording data: {}".format(new_recording))
-        if new_recording.is_valid(raise_exception=True):
-            new_recording.save()
-            return Response(status=status.HTTP_201_CREATED)
-        return Response("Invalid data, check the post request for all necessary data.",
-                        status=status.HTTP_400_BAD_REQUEST)
-
-
-class AnnotatedRecordingFilter(filters.FilterSet):
-    surah = filters.NumberFilter(field_name='surah_num')
-    ayah = filters.NumberFilter(field_name='ayah_num')
-    gender = filters.CharFilter(field_name='associated_demographic__gender')
-
-    class Meta:
-        model = AnnotatedRecording
-        fields = ['gender', 'surah', 'ayah']
-
-
-class AnnotatedRecordingViewSet(viewsets.ModelViewSet):
-    """API to handle query parameters
-    Example: api/v1/recordings/?surah=114&ayah=1
-    """
-    serializer_class = AnnotatedRecordingSerializer
-    queryset = AnnotatedRecording.objects.all()
-    filter_backends = (filters.DjangoFilterBackend,)
-    filter_class = AnnotatedRecordingFilter
-
-class EvaluationFilter(filters.FilterSet):
-    EVAL_CHOICES = (
-    ('correct', 'Correct'),
-    ('incorrect', 'Incorrect'))
-
-    surah = filters.NumberFilter(field_name='associated_recording__surah_num')
-    ayah = filters.NumberFilter(field_name='associated_recording__ayah_num')
-    evaluation = filters.ChoiceFilter(choices=EVAL_CHOICES)
-    associated_recording = filters.ModelChoiceFilter(queryset=AnnotatedRecording.objects.all())
-
-    class Meta:
-        model = Evaluation
-        fields = ['surah', 'ayah', 'evaluation', 'associated_recording']
-
-class EvaluationViewSet(viewsets.ModelViewSet):
-    """API to handle query parameters
-    Example: api/v1/evaluations/?surah=114&ayah=1&evaluation=correct
-    """
-    serializer_class = EvaluationSerializer
-    queryset = Evaluation.objects.all()
-    filter_backends = (filters.DjangoFilterBackend,)
-    filter_class=EvaluationFilter
-
-class DemographicInformationViewList(APIView):
-    """API endpoint that allows demographic information to be viewed or edited.
-    """
-
-    def get(self, request, format=None):
-        recordings = DemographicInformation.objects.all().order_by('-timestamp')
-        serializer = DemographicInformationSerializer(recordings, many=True)
-        return Response(serializer.data)
-
-    def post(self, request, *args, **kwargs):
-        # User tracking - Ensure there is always a session key.
-        session_key = request.session.session_key
-
-        if hasattr(request.data, "session_id"):
-            session_key = request.data["session_id"]
-        elif not session_key:
-            return Response(
-                "Can't submit demographic data for a user that doesn't exist.",
-                status=status.HTTP_400_BAD_REQUEST)
-
-        request.data['session_id'] = session_key
-
-        new_demographic = DemographicInformationSerializer(data=request.data)
-        print("Received demographic data: {}".format(request.data))
-        if new_demographic.is_valid(raise_exception=True):
-            new_demographic.save()
-            return Response(status=status.HTTP_201_CREATED)
-        return Response("Invalid data, check the post request for all necessary data.",
-                        status=status.HTTP_400_BAD_REQUEST)
-
-
-class UserViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows users to be viewed or edited.
-    """
-    queryset = User.objects.all().order_by('-date_joined')
-    serializer_class = UserSerializer
-
-
-class GroupViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows groups to be viewed or edited.
-    """
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
 
 
 class RecordingsCount(APIView):
@@ -197,13 +53,13 @@ class GetAyah(APIView):
         line_length = request.GET.get('line_length') or 200
 
         # Load the Arabic Quran from JSON
-        file_name = join(BASE_DIR, 'utils/data-words.json')
+        file_name = os.path.join(BASE_DIR, 'utils/data-words.json')
         with io.open(file_name, 'r', encoding='utf-8-sig') as file:
             quran = json.load(file)
             file.close()
 
         # Load the Arabic Quran from JSON
-        file_name = join(BASE_DIR, 'utils/data-uthmani.json')
+        file_name = os.path.join(BASE_DIR, 'utils/data-uthmani.json')
         with io.open(file_name, 'r', encoding='utf-8-sig') as file:
             quran_uthmani = json.load(file)
             file.close()
@@ -212,7 +68,6 @@ class GetAyah(APIView):
         ayah = quran[str(surah)]["verses"][int(ayah) - 1]
 
         # Set image file and hash
-        # image_url = static('img/ayah_images/' + str(surah) + "_" + str(ayah) + '.png')
         req_hash = random.getrandbits(32)
 
         # Format as json, and save row in DB
@@ -225,7 +80,7 @@ class GetAyah(APIView):
     def post(self, request, *args, **kwargs):
 
         # Load the Arabic Quran from JSON
-        file_name = join(BASE_DIR, 'utils/data-words.json')
+        file_name = os.path.join(BASE_DIR, 'utils/data-words.json')
         with io.open(file_name, 'r', encoding='utf-8-sig') as file:
             quran = json.load(file)
             file.close()
@@ -255,7 +110,7 @@ class GetSurah(APIView):
         :rtype: JsonResponse
         """
         # Load the Transliteration Quran from JSON
-        file_name = join(BASE_DIR, 'utils/data.json')
+        file_name = os.path.join(BASE_DIR, 'utils/data.json')
         with io.open(file_name, 'r', encoding='utf-8-sig') as file:
             ayahs = json.load(file)
             file.close()
@@ -380,7 +235,8 @@ class About(APIView):
             raw_counts.count(4)]
         count_data.append(TOTAL_AYAH_NUM - sum(count_data))  # remaining have 5+ count
 
-        recording_count_formatted = "{:,}".format(recording_count)  # Add commas to this number as it is used for display.
+        # Add commas to this number as it is used for display.
+        recording_count_formatted = "{:,}".format(recording_count)
 
         return Response({
             'recording_count': recording_count,
@@ -433,17 +289,19 @@ class Profile(APIView):
             weekly_counts.append(count)
 
         recording_count = AnnotatedRecording.objects.filter(
-            file__gt='', file__isnull=False).count()
+                file__gt='', file__isnull=False).count()
 
         # Construct dictionaries of the user's recordings.
         user_recording_count = AnnotatedRecording.objects.filter(
-            file__gt='', file__isnull=False, session_id=session_key).count()
+                file__gt='', file__isnull=False, session_id=session_key).count()
         recent_recordings = AnnotatedRecording.objects.filter(
-            file__gt='', file__isnull=False, session_id=session_key, timestamp__gt=last_week)
+                file__gt='', file__isnull=False, session_id=session_key,
+                timestamp__gt=last_week)
         recent_dict = defaultdict(list)
         [recent_dict[rec.surah_num].append((rec.ayah_num, rec.file.url)) for rec in recent_recordings]
         old_recordings = AnnotatedRecording.objects.filter(
-            file__gt='', file__isnull=False, session_id=session_key, timestamp__lt=last_week)
+                file__gt='', file__isnull=False, session_id=session_key,
+                timestamp__lt=last_week)
         old_dict = defaultdict(list)
         [old_dict[rec.surah_num].append((rec.ayah_num, rec.file.url)) for rec in old_recordings]
 
@@ -461,98 +319,3 @@ class Profile(APIView):
             'recording_count': recording_count,
             'user_recording_count': user_recording_count
         })
-
-
-class EvaluationList(APIView):
-    def get(self, request, *args, **kwargs):
-        random_recording = get_low_evaluation_count()
-        # Load the Arabic Quran from JSON
-        file_name = os.path.join(BASE_DIR, 'utils/data-words.json')
-        with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-            uthmani_quran = json.load(file)
-
-        # Fields
-        surah_num = str(random_recording.surah_num)
-        ayah_num = random_recording.ayah_num
-        audio_url = random_recording.file.url
-        ayah = uthmani_quran[surah_num]["verses"][ayah_num - 1]
-        recording_id = random_recording.id
-
-        ayah["audio_url"] = audio_url
-        ayah["recording_id"] = recording_id
-
-        return Response(ayah)
-
-    def post(self, request, *args, **kwargs):
-        ayah_num = int(request.data['ayah'])
-        surah_num = str(request.data['surah'])
-
-        # This is the code of get_low_evaluation_count() but this is getting the
-        # choices of a specific ayah
-        recording_evals = AnnotatedRecording.objects.filter(surah_num=surah_num,
-                                                            ayah_num=ayah_num).annotate(total=Count('evaluation'))
-        recording_evals_dict = {entry: entry.total for entry in recording_evals}
-
-        min_evals = min(recording_evals_dict.values())
-        min_evals_recordings = [k for k, v in recording_evals_dict.items() if v == min_evals]
-
-        recording = random.choice(min_evals_recordings)
-
-
-        # Load the Arabic Quran from JSON
-        file_name = os.path.join(BASE_DIR, 'utils/data-words.json')
-        with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-            uthmani_quran = json.load(file)
-
-        ayah = uthmani_quran[surah_num]["verses"][ayah_num - 1]
-
-        ayah["audio_url"] = recording.file.url
-        ayah["recording_id"] = recording.id
-
-        return Response(ayah)
-
-
-class EvaluationSubmission(APIView):
-    def post(self, request, *args, **kwargs):
-        # User tracking - Ensure there is always a session key.
-        session_key = request.session.session_key
-
-        if hasattr(request.data, "session_id"):
-            session_key = request.data["session_id"]
-        elif not session_key:
-            request.session.create()
-            session_key = request.session.session_key
-
-        ayah = request.data['ayah']
-        data = {
-            "session_id": session_key,
-            "associated_recording": ayah["recording_id"],
-            "evaluation": ayah["evaluation"]
-        }
-        new_evaluation = EvaluationSerializer(data=data)
-        try:
-            new_evaluation.is_valid(raise_exception=True)
-            new_evaluation.save()
-        except serializers.ValidationError:
-            return Response("Invalid serializer data.",
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(status=status.HTTP_201_CREATED)
-
-
-class DownloadAudio(APIView):
-    def get(self, request, *args, **kwargs):
-        """download_audio.html renderer. Returns the URLs of 15 random, non-empty
-        audio samples.
-
-         :param request: rest API request object.
-         :type request: Request
-         :return: Response with list of file urls.
-         :rtype: HttpResponse
-         """
-        files = AnnotatedRecording.objects.filter(file__gt='', file__isnull=False).order_by('timestamp')[5000:6000]
-        random.seed(0)  # ensures consistency in the files displayed.
-        rand_files = random.sample(list(files), 15)
-        file_urls = [f.file.url for f in rand_files]
-
-        return Response(file_urls)

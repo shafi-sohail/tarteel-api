@@ -88,13 +88,6 @@ MIGRATION_MODULES = {
     'socialaccount': 'tarteel.fixtures.socialaccount_migrations'
 }
 
-# RELATED TO HTTPS REDIRECT
-SECURE_SSL_REDIRECT = not LOCAL_DEV
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE', bool, default=False)
-CSRF_COOKIE_SECURE = env('CSRF_COOKIE_SECURE', bool, default=False)
-PREPEND_WWW = env('PREPEND_WWW', bool, default=False)
-
 # APPS
 # ------------------------------------------------------------------------------
 DJANGO_APPS = [
@@ -110,6 +103,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'django_filters',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'allauth',
     'allauth.account',
@@ -131,10 +125,10 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -182,10 +176,7 @@ elif USE_DEV_DB:
     }
 elif USE_LOCAL_DB:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': ROOT.path('db.sqlite3')
-        }
+        'default': env.db('SQLITE_URL')
     }
 
 
@@ -323,7 +314,12 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.JSONRenderer',
     ),
-    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',)
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100,
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    ),
 }
 
 # django-corsheader
@@ -331,3 +327,16 @@ REST_FRAMEWORK = {
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 
+# SECURITY
+PREPEND_WWW = env('PREPEND_WWW', bool, default=False)
+# HTTPS Redirect
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Different settings for local env due to https/CSRF issues
+if LOCAL_DEV:
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+else:
+    SECURE_SSL_REDIRECT = env('SECURE_SSL_REDIRECT', bool, default=False)
+    SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE', bool, default=False)
+    CSRF_COOKIE_SECURE = env('CSRF_COOKIE_SECURE', bool, default=False)
