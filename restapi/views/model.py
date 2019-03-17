@@ -31,7 +31,7 @@ from evaluation.views import get_low_evaluation_count
 # =============================================== #
 
 TOTAL_AYAH_NUM = 6236
-BASE_DIR = dirname(dirname(abspath(__file__)))
+BASE_DIR = dirname(dirname(dirname(abspath(__file__))))
 INT_NA_VALUE = -1
 STRING_NA_VALUE = "N/A"
 
@@ -96,31 +96,6 @@ class AnnotatedRecordingViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
 
-class EvaluationFilter(filters.FilterSet):
-    EVAL_CHOICES = (
-    ('correct', 'Correct'),
-    ('incorrect', 'Incorrect'))
-
-    surah = filters.NumberFilter(field_name='associated_recording__surah_num')
-    ayah = filters.NumberFilter(field_name='associated_recording__ayah_num')
-    evaluation = filters.ChoiceFilter(choices=EVAL_CHOICES)
-    associated_recording = filters.ModelChoiceFilter(queryset=AnnotatedRecording.objects.all())
-
-    class Meta:
-        model = Evaluation
-        fields = ['surah', 'ayah', 'evaluation', 'associated_recording']
-
-
-class EvaluationViewSet(viewsets.ModelViewSet):
-    """API to handle query parameters
-    Example: api/v1/evaluations/?surah=114&ayah=1&evaluation=correct
-    """
-    serializer_class = EvaluationSerializer
-    queryset = Evaluation.objects.all()
-    filter_backends = (filters.DjangoFilterBackend,)
-    filter_class=EvaluationFilter
-
-
 class DemographicInformationViewList(APIView):
     """API endpoint that allows demographic information to be viewed or edited.
     """
@@ -152,20 +127,29 @@ class DemographicInformationViewList(APIView):
                         status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows users to be viewed or edited.
-    """
-    queryset = User.objects.all().order_by('-date_joined')
-    serializer_class = UserSerializer
+class EvaluationFilter(filters.FilterSet):
+    EVAL_CHOICES = (
+    ('correct', 'Correct'),
+    ('incorrect', 'Incorrect'))
+
+    surah = filters.NumberFilter(field_name='associated_recording__surah_num')
+    ayah = filters.NumberFilter(field_name='associated_recording__ayah_num')
+    evaluation = filters.ChoiceFilter(choices=EVAL_CHOICES)
+    associated_recording = filters.ModelChoiceFilter(queryset=AnnotatedRecording.objects.all())
+
+    class Meta:
+        model = Evaluation
+        fields = ['surah', 'ayah', 'evaluation', 'associated_recording']
 
 
-class GroupViewSet(viewsets.ModelViewSet):
+class EvaluationViewSet(viewsets.ModelViewSet):
+    """API to handle query parameters
+    Example: api/v1/evaluations/?surah=114&ayah=1&evaluation=correct
     """
-    API endpoint that allows groups to be viewed or edited.
-    """
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+    serializer_class = EvaluationSerializer
+    queryset = Evaluation.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filter_class=EvaluationFilter
 
 
 class EvaluationList(APIView):
@@ -189,29 +173,32 @@ class EvaluationList(APIView):
         return Response(ayah)
 
     def post(self, request, *args, **kwargs):
-        ayah_num = int(request.data['ayah'])
-        surah_num = str(request.data['surah'])
+        if "recording_id" in request.data:
+            recording_id = request.data['recording_id']
+            recording = list(AnnotatedRecording.objects.filter(id=recording_id).values())[0]
+        else:
+            ayah_num = int(request.data['ayah'])
+            surah_num = str(request.data['surah'])
+            # This is the code of get_low_evaluation_count() but this is getting the
+            # choices of a specific ayah
+            recording_evals = AnnotatedRecording.objects.filter(surah_num=surah_num,
+                                                                ayah_num=ayah_num).annotate(total=Count('evaluation'))
+            recording_evals_dict = {entry: entry.total for entry in recording_evals}
 
-        # This is the code of get_low_evaluation_count() but this is getting the
-        # choices of a specific ayah
-        recording_evals = AnnotatedRecording.objects.filter(surah_num=surah_num,
-                                                            ayah_num=ayah_num).annotate(total=Count('evaluation'))
-        recording_evals_dict = {entry: entry.total for entry in recording_evals}
+            min_evals = min(recording_evals_dict.values())
+            min_evals_recordings = [k for k, v in recording_evals_dict.items() if v == min_evals]
 
-        min_evals = min(recording_evals_dict.values())
-        min_evals_recordings = [k for k, v in recording_evals_dict.items() if v == min_evals]
-
-        recording = random.choice(min_evals_recordings)
-
+            recording = {random.choice(min_evals_recordings)}
 
         # Load the Arabic Quran from JSON
         file_name = os.path.join(BASE_DIR, 'utils/data-words.json')
         with io.open(file_name, 'r', encoding='utf-8-sig') as file:
             uthmani_quran = json.load(file)
 
-        ayah = uthmani_quran[surah_num]["verses"][ayah_num - 1]
-
-        ayah["audio_url"] = recording.file.url
+        surah_num = str(recording['surah_num'])
+        ayah = uthmani_quran[surah_num]["verses"][recording['ayah_num'] - 1]
+        if hasattr(recording, "file"):
+            ayah["audio_url"] = recording.file.url
         ayah["recording_id"] = recording.id
 
         return Response(ayah)
@@ -245,19 +232,19 @@ class EvaluationSubmission(APIView):
         return Response(status=status.HTTP_201_CREATED)
 
 
-class DownloadAudio(APIView):
-    def get(self, request, *args, **kwargs):
-        """download_audio.html renderer. Returns the URLs of 15 random, non-empty
-        audio samples.
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
 
-         :param request: rest API request object.
-         :type request: Request
-         :return: Response with list of file urls.
-         :rtype: HttpResponse
-         """
-        files = AnnotatedRecording.objects.filter(file__gt='', file__isnull=False).order_by('timestamp')[5000:6000]
-        random.seed(0)  # ensures consistency in the files displayed.
-        rand_files = random.sample(list(files), 15)
-        file_urls = [f.file.url for f in rand_files]
 
-        return Response(file_urls)
+class GroupViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows groups to be viewed or edited.
+    """
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+
+
