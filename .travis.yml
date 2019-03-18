@@ -6,7 +6,7 @@ before_install:
   -in keyfile.enc -out keyfile -d
 install:
 - pip install -r requirements.txt
-- bash install_gitcrypt.sh
+- sudo bash install_gitcrypt.sh
 stages:
 - name: test
 - name: develop
