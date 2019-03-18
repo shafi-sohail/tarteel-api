@@ -10,20 +10,31 @@ install:
 stages:
 - name: test
 - name: develop
-  if: branch = develop
 - name: production
-  if: branch = master
+
 jobs:
   include:
   - stage: test
     script: echo "TODO tests"
+
   - stage: develop
+    if: branch = develop
+    name: "Deploy to api-dev"
     script:
-    - echo "TODO test"
-    - git-crypt unlock keyfile
-    - zappa update dev
+    - echo "TODO test" && git-crypt unlock keyfile
+    deploy:
+      provider: script
+      script: zappa update dev
+      on:
+        branch: develop
+
   - stage: production
+    if: branch = master
+    name: "Deploy to apiv1"
     script:
-    - echo "TODO test"
-    - git-crypt unlock keyfile
-    - zappa update prod
+    - echo "TODO test" && git-crypt unlock keyfile
+    deploy:
+      provider: script
+      script: zappa update prod
+      on:
+        branch: master
