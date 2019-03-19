@@ -7,34 +7,17 @@ before_install:
 install:
 - pip install -r requirements.txt
 - sudo bash install_gitcrypt.sh
-stages:
-- name: test
-- name: develop
-- name: production
 
 jobs:
   include:
   - stage: test
+    name: Tests
     script: echo "TODO tests"
 
-  - stage: develop
-    if: branch = develop
-    name: "Deploy to api-dev"
-    script:
-    - echo "TODO test" && git-crypt unlock keyfile
-    deploy:
-      provider: script
-      script: zappa update dev
-      on:
-        branch: develop
-
-  - stage: production
-    if: branch = master
-    name: "Deploy to apiv1"
-    script:
-    - echo "TODO test" && git-crypt unlock keyfile
-    deploy:
-      provider: script
-      script: zappa update prod
-      on:
-        branch: master
+before_deploy: git-crypt unlock keyfile
+deploy:
+  provider: script
+  script: "./zappa_deploy.sh"
+  on:
+    all_branches: true
+    condition: $TRAVIS_BRANCH =~ ^develop|master|travis-test$
