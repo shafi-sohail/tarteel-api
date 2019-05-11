@@ -102,7 +102,7 @@ class DemographicInformationViewList(APIView):
     """
 
     def get(self, request, format=None):
-        recordings = DemographicInformation.objects.all().order_by('-timestamp')
+        recordings = DemographicInformation.objects.all().order_by('-timestamp')[:10]
         serializer = DemographicInformationSerializer(recordings, many=True)
         return Response(serializer.data)
 
@@ -157,9 +157,9 @@ class EvaluationList(APIView):
     def get(self, request, *args, **kwargs):
         random_recording = get_low_evaluation_count()
         # Load the Arabic Quran from JSON
-        URL = 'https://uc520b745555b7bcf9da297533da.dl.dropboxusercontent.com/cd/0/get/' \
-              'Ac4fYqiJ-3hSJn4gp2_jyb9dlZhwJ2uJH3NG0SpImV26CQoGjFwaJ0umMXxjxInOdnHAWtCz' \
-              'DabpG--i50qu6VYSUstHSStzflEXgACwEYwDiNysbQX078k6ZUez4n4WZz0/file?dl=1'
+        URL = 'https://ucde0d58e7026d99181d7828dff8.dl.dropboxusercontent.com/cd/0/get/' \
+              'AgvkCecR7SYzpmcrvOaW7k89pd5HlUmUa2pq_uGVtOK-FrjhmOyHssDqqCh_l8nVGS-Ver_f' \
+              'vwLITQoJCE9dl0Aw9XRbuhNp4ITbP_n1CWlzig/file?dl=1'
         data = urlopen(URL)
         data_str = ''
         for line in data:
@@ -179,12 +179,13 @@ class EvaluationList(APIView):
         return Response(ayah)
 
     def post(self, request, *args, **kwargs):
+        ayah_num = int(request.data['ayah'])
+        surah_num = str(request.data['surah'])
+
         if "recording_id" in request.data:
             recording_id = request.data['recording_id']
             recording = list(AnnotatedRecording.objects.filter(id=recording_id).values())[0]
         else:
-            ayah_num = int(request.data['ayah'])
-            surah_num = str(request.data['surah'])
             # This is the code of get_low_evaluation_count() but this is getting the
             # choices of a specific ayah
             recording_evals = AnnotatedRecording.objects.filter(surah_num=surah_num,
@@ -197,9 +198,9 @@ class EvaluationList(APIView):
             recording = {random.choice(min_evals_recordings)}
 
         # Load the Arabic Quran from JSON
-        URL = 'https://uc520b745555b7bcf9da297533da.dl.dropboxusercontent.com/cd/0/get/' \
-              'Ac4fYqiJ-3hSJn4gp2_jyb9dlZhwJ2uJH3NG0SpImV26CQoGjFwaJ0umMXxjxInOdnHAWtCz' \
-              'DabpG--i50qu6VYSUstHSStzflEXgACwEYwDiNysbQX078k6ZUez4n4WZz0/file?dl=1'
+        URL = 'https://ucde0d58e7026d99181d7828dff8.dl.dropboxusercontent.com/cd/0/get/' \
+              'AgvkCecR7SYzpmcrvOaW7k89pd5HlUmUa2pq_uGVtOK-FrjhmOyHssDqqCh_l8nVGS-Ver_f' \
+              'vwLITQoJCE9dl0Aw9XRbuhNp4ITbP_n1CWlzig/file?dl=1'
         data = urlopen(URL)
         data_str = ''
         for line in data:

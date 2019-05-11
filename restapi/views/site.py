@@ -164,54 +164,17 @@ class GetAyah(APIView):
         line_length = request.GET.get('line_length') or 200
 
         # Load the Arabic Quran from JSON
-        URL = 'https://uc520b745555b7bcf9da297533da.dl.dropboxusercontent.com/cd/0/get/' \
-              'Ac4fYqiJ-3hSJn4gp2_jyb9dlZhwJ2uJH3NG0SpImV26CQoGjFwaJ0umMXxjxInOdnHAWtCz' \
-              'DabpG--i50qu6VYSUstHSStzflEXgACwEYwDiNysbQX078k6ZUez4n4WZz0/file?dl=1'
-        data = urlopen(URL)
-        data_str = ''
-        for line in data:
-            data_str += line.decode('utf-8')
-        quran = json.loads(data)
-
-        # Load the Arabic Quran from JSON
         file_name = os.path.join(BASE_DIR, 'utils/data-uthmani.json')
         with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-            quran_uthmani = json.load(file)
+            quran = json.load(file)
+            quran = quran['quran']
             file.close()
 
-        surah, ayah, line = get_low_ayah_count(quran_uthmani, line_length)
-        ayah = quran[str(surah)]["verses"][int(ayah) - 1]
+        surah, ayah, line = get_low_ayah_count(quran, line_length)
+        print("Surah: {}, Ayah: {}".format(surah, ayah))
+        ayah = quran['surahs'][surah - 1]['ayahs'][ayah - 1]
 
-        # Set image file and hash
-        req_hash = random.getrandbits(32)
-
-        # Format as json, and save row in DB
-
-        ayah['hash'] = req_hash
         ayah['session_id'] = session_key
-
-        return Response(ayah)
-
-    def post(self, request, *args, **kwargs):
-
-        # Load the Arabic Quran from JSON
-        URL = 'https://uc520b745555b7bcf9da297533da.dl.dropboxusercontent.com/cd/0/get/' \
-              'Ac4fYqiJ-3hSJn4gp2_jyb9dlZhwJ2uJH3NG0SpImV26CQoGjFwaJ0umMXxjxInOdnHAWtCz' \
-              'DabpG--i50qu6VYSUstHSStzflEXgACwEYwDiNysbQX078k6ZUez4n4WZz0/file?dl=1'
-        data = urlopen(URL)
-        data_str = ''
-        for line in data:
-            data_str += line.decode('utf-8')
-        quran = json.loads(data)
-
-        surah = str(request.data['surah'])
-        ayah = int(request.data['ayah'])
-        # The parameters `surah` and `ayah` are 1-indexed, so subtract 1.
-        ayah = quran[surah]["verses"][ayah - 1]
-
-        req_hash = random.getrandbits(32)
-
-        ayah['hash'] = req_hash
 
         return Response(ayah)
 

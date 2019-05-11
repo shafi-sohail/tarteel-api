@@ -50,7 +50,7 @@ def get_low_ayah_count(quran_dict, line_length):
     ayah_count_dict = {(entry['surah_num'], entry['ayah_num']): entry['count'] for entry in ayah_counts}
 
     min_count = float("inf")
-    surah_list = quran_dict['quran']['surahs']
+    surah_list = quran_dict['surahs']
     ayah_data_list = []
     for surah in surah_list:
         surah_num = int(surah['num'])
