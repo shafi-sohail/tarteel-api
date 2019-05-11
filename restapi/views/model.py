@@ -4,6 +4,7 @@ import random
 import io
 import json
 import os
+from urllib.request import urlopen
 # Django
 from django.contrib.auth.models import User, Group
 from django_filters import rest_framework as filters
@@ -38,7 +39,7 @@ STRING_NA_VALUE = "N/A"
 
 class AnnotatedRecordingList(APIView):
     parser_classes = (MultiPartParser, FormParser, JSONParser)
-    permission_classes = (RecordingPermissions,)
+    # permission_classes = (RecordingPermissions,)
 
     def get(self, request, format=None):
         """Returns the last 10 recordings received."""
@@ -93,7 +94,7 @@ class AnnotatedRecordingViewSet(viewsets.ModelViewSet):
     queryset = AnnotatedRecording.objects.all()
     filter_backends = (filters.DjangoFilterBackend,)
     filter_class = AnnotatedRecordingFilter
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    # permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
 
 class DemographicInformationViewList(APIView):
@@ -156,15 +157,20 @@ class EvaluationList(APIView):
     def get(self, request, *args, **kwargs):
         random_recording = get_low_evaluation_count()
         # Load the Arabic Quran from JSON
-        file_name = os.path.join(BASE_DIR, 'utils/data-words.json')
-        with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-            uthmani_quran = json.load(file)
+        URL = 'https://uc520b745555b7bcf9da297533da.dl.dropboxusercontent.com/cd/0/get/' \
+              'Ac4fYqiJ-3hSJn4gp2_jyb9dlZhwJ2uJH3NG0SpImV26CQoGjFwaJ0umMXxjxInOdnHAWtCz' \
+              'DabpG--i50qu6VYSUstHSStzflEXgACwEYwDiNysbQX078k6ZUez4n4WZz0/file?dl=1'
+        data = urlopen(URL)
+        data_str = ''
+        for line in data:
+            data_str += line.decode('utf-8')
+        quran = json.loads(data)
 
         # Fields
         surah_num = str(random_recording.surah_num)
         ayah_num = random_recording.ayah_num
         audio_url = random_recording.file.url
-        ayah = uthmani_quran[surah_num]["verses"][ayah_num - 1]
+        ayah = quran[surah_num]["verses"][ayah_num - 1]
         recording_id = random_recording.id
 
         ayah["audio_url"] = audio_url
@@ -191,12 +197,17 @@ class EvaluationList(APIView):
             recording = {random.choice(min_evals_recordings)}
 
         # Load the Arabic Quran from JSON
-        file_name = os.path.join(BASE_DIR, 'utils/data-words.json')
-        with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-            uthmani_quran = json.load(file)
+        URL = 'https://uc520b745555b7bcf9da297533da.dl.dropboxusercontent.com/cd/0/get/' \
+              'Ac4fYqiJ-3hSJn4gp2_jyb9dlZhwJ2uJH3NG0SpImV26CQoGjFwaJ0umMXxjxInOdnHAWtCz' \
+              'DabpG--i50qu6VYSUstHSStzflEXgACwEYwDiNysbQX078k6ZUez4n4WZz0/file?dl=1'
+        data = urlopen(URL)
+        data_str = ''
+        for line in data:
+            data_str += line.decode('utf-8')
+        quran = json.loads(data)
 
-        surah_num = str(recording['surah_num'])
-        ayah = uthmani_quran[surah_num]["verses"][recording['ayah_num'] - 1]
+        ayah = quran[surah_num]["verses"][ayah_num - 1]
+
         if hasattr(recording, "file"):
             ayah["audio_url"] = recording.file.url
         ayah["recording_id"] = recording.id
