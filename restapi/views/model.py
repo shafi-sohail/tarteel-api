@@ -130,8 +130,9 @@ class DemographicInformationViewList(APIView):
 
 class EvaluationFilter(filters.FilterSet):
     EVAL_CHOICES = (
-    ('correct', 'Correct'),
-    ('incorrect', 'Incorrect'))
+        ('correct', 'Correct'),
+        ('incorrect', 'Incorrect')
+    )
 
     surah = filters.NumberFilter(field_name='associated_recording__surah_num')
     ayah = filters.NumberFilter(field_name='associated_recording__ayah_num')
@@ -150,27 +151,24 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     serializer_class = EvaluationSerializer
     queryset = Evaluation.objects.all()
     filter_backends = (filters.DjangoFilterBackend,)
-    filter_class=EvaluationFilter
+    filter_class = EvaluationFilter
 
 
 class EvaluationList(APIView):
     def get(self, request, *args, **kwargs):
         random_recording = get_low_evaluation_count()
         # Load the Arabic Quran from JSON
-        URL = 'https://ucde0d58e7026d99181d7828dff8.dl.dropboxusercontent.com/cd/0/get/' \
-              'AgvkCecR7SYzpmcrvOaW7k89pd5HlUmUa2pq_uGVtOK-FrjhmOyHssDqqCh_l8nVGS-Ver_f' \
-              'vwLITQoJCE9dl0Aw9XRbuhNp4ITbP_n1CWlzig/file?dl=1'
-        data = urlopen(URL)
-        data_str = ''
-        for line in data:
-            data_str += line.decode('utf-8')
-        quran = json.loads(data)
+        quran_data_url = 'https://s3.amazonaws.com/zappa-tarteel-static/data-words.json'
+        data_response = urlopen(quran_data_url)
+        json_data = data_response.read()
+        json_str = json_data.decode('utf-8')
+        quran = json.loads(json_str)
 
         # Fields
-        surah_num = str(random_recording.surah_num)
+        surah_num = random_recording.surah_num
         ayah_num = random_recording.ayah_num
         audio_url = random_recording.file.url
-        ayah = quran[surah_num]["verses"][ayah_num - 1]
+        ayah = quran[str(surah_num)]["verses"][ayah_num - 1]
         recording_id = random_recording.id
 
         ayah["audio_url"] = audio_url
@@ -184,7 +182,7 @@ class EvaluationList(APIView):
 
         if "recording_id" in request.data:
             recording_id = request.data['recording_id']
-            recording = list(AnnotatedRecording.objects.filter(id=recording_id).values())[0]
+            recording = AnnotatedRecording.objects.get(id=recording_id)
         else:
             # This is the code of get_low_evaluation_count() but this is getting the
             # choices of a specific ayah
@@ -198,14 +196,11 @@ class EvaluationList(APIView):
             recording = {random.choice(min_evals_recordings)}
 
         # Load the Arabic Quran from JSON
-        URL = 'https://ucde0d58e7026d99181d7828dff8.dl.dropboxusercontent.com/cd/0/get/' \
-              'AgvkCecR7SYzpmcrvOaW7k89pd5HlUmUa2pq_uGVtOK-FrjhmOyHssDqqCh_l8nVGS-Ver_f' \
-              'vwLITQoJCE9dl0Aw9XRbuhNp4ITbP_n1CWlzig/file?dl=1'
-        data = urlopen(URL)
-        data_str = ''
-        for line in data:
-            data_str += line.decode('utf-8')
-        quran = json.loads(data)
+        quran_data_url = 'https://s3.amazonaws.com/zappa-tarteel-static/data-words.json'
+        data_response = urlopen(quran_data_url)
+        json_data = data_response.read()
+        json_str = json_data.decode('utf-8')
+        quran = json.loads(json_str)
 
         ayah = quran[surah_num]["verses"][ayah_num - 1]
 

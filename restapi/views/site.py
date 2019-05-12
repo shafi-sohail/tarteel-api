@@ -150,7 +150,6 @@ class GetAyah(APIView):
 
         :param request: rest API request object.
         :type request: Request
-        :param line_length: The maximum number of characters in an ayah.
         :return: A JSON response with the surah/ayah numbers, text, hash, ID, and image.
         :rtype: JsonResponse
         """
@@ -163,17 +162,16 @@ class GetAyah(APIView):
 
         line_length = request.GET.get('line_length') or 200
 
-        # Load the Arabic Quran from JSON
-        file_name = os.path.join(BASE_DIR, 'utils/data-uthmani.json')
-        with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-            quran = json.load(file)
-            quran = quran['quran']
-            file.close()
+        # Load the Uthmani Quran from JSON
+        quran_data_url = 'https://s3.amazonaws.com/zappa-tarteel-static/data-uthmani.json'
+        data_response = urlopen(quran_data_url)
+        json_data = data_response.read()
+        json_str = json_data.decode('utf-8-sig')
+        quran = json.loads(json_str)
+        quran = quran['quran']
 
         surah, ayah, line = get_low_ayah_count(quran, line_length)
-        print("Surah: {}, Ayah: {}".format(surah, ayah))
         ayah = quran['surahs'][surah - 1]['ayahs'][ayah - 1]
-
         ayah['session_id'] = session_key
 
         return Response(ayah)
@@ -182,26 +180,25 @@ class GetAyah(APIView):
 class GetSurah(APIView):
     """Gets all the ayahs in specific surah given by num"""
 
-    def get(self, request, num, format=None):
+    def get(self, request, surah_num, format=None):
         """Returns the ayahs of specific surah.
 
         :param request: rest API request object.
         :type request: Request
-        :num param: the surah number
         :return: A JSON response with the requested text.
         :rtype: JsonResponse
         """
-        # Load the Transliteration Quran from JSON
-        file_name = os.path.join(BASE_DIR, 'utils/data.json')
-        with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-            ayahs = json.load(file)
-            file.close()
+        # Load the Uthmani Quran from JSON
+        quran_data_url = 'https://s3.amazonaws.com/zappa-tarteel-static/data.json'
+        data_response = urlopen(quran_data_url)
+        json_data = data_response.read()
+        json_str = json_data.decode('utf-8-sig')
+        quran = json.loads(json_str)
 
-        surah = num
-        ayah_list = ayahs[surah]
+        ayah_list = quran[surah_num]
 
         res = {
-            'chapter_id': num,
+            'chapter_id': surah_num,
             'ayahs': ayah_list,
         }
 

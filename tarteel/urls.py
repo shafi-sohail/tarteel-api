@@ -20,14 +20,13 @@ router = routers.DefaultRouter()
 
 urlpatterns = [
     # Rest API v1
-    path('api/', include('restapi.urls')),
+    path('api/v1/', include('restapi.urls')),
     # Top Level API
     url(r'^admin/', admin.site.urls),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^api/demographics/', restapi.views.DemographicInformationViewList.as_view(),
         name='demographic'),
-    url(r'^api/evaluator/', evaluation.views.EvaluationList.as_view(), name="evaluation"),
-    url(r'^api/v2/evaluator/', restapi.views.EvaluationList.as_view(), name="v2_evaluation"),
+    url(r'^api/v1/evaluator/', restapi.views.EvaluationList.as_view()),
     url(r'^api/v2/submit_evaluation', restapi.views.EvaluationSubmission.as_view(), name="v2_evaluation_submission"),
     url(r'^api/get_evaluations_count/', evaluation.views.get_evaluations_count,
         name="get_evaluations_count"),
@@ -36,8 +35,6 @@ urlpatterns = [
         name='recordingscount'),
     url(r'^api/download-audio/', restapi.views.DownloadAudio.as_view()),
     # Evaluation tools
-    url(r'^evaluator/', evaluation.views.evaluator),
-    url(r'^evaluation/evaluator/', evaluation.views.evaluator),
     url(r'^evaluation/tajweed/', evaluation.views.tajweed_evaluator),
     url(r'^evaluation/submit_tajweed', evaluation.views.TajweedEvaluationList.as_view(),
         name='tajweed-evaluation'),

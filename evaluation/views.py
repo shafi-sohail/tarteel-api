@@ -19,6 +19,7 @@ import io
 import json
 import os
 import random
+from urllib.request import urlopen
 
 # =============================================== #
 #           Constant Global Definitions           #
@@ -84,6 +85,7 @@ def is_evaluator(user):
         return user.groups.filter(name='evaluator').exists()
     return False
 
+
 def get_low_evaluation_count():
     """Finds a recording with the lowest number of evaluations
     :returns: A random AnnotatedRecording object which has the minimum evaluations
@@ -123,59 +125,6 @@ class TajweedEvaluationList(APIView):
 # ===================================== #
 #           Static Page Views           #
 # ===================================== #
-
-
-def evaluator(request):
-    """Returns a random ayah for an expert to evaluate for any mistakes.
-    :param request: rest API request object.
-    :type request: Request
-    :return: Rendered view of evaluator page with ayah and audio url
-    :rtype: HttpResponse
-    """
-    if not request.session.session_key:
-        request.session.create()
-    session_key = request.session.session_key
-
-    random_recording = get_low_evaluation_count()
-    # Load the Arabic Quran from JSON
-    file_name = os.path.join(BASE_DIR, 'utils/data-uthmani.json')
-    with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-        uthmani_quran = json.load(file)
-        uthmani_quran = uthmani_quran["quran"]
-
-    # Fields
-    surah_num = random_recording.surah_num
-    ayah_num = random_recording.ayah_num
-    audio_url = random_recording.file.url
-    ayah_text = uthmani_quran["surahs"][surah_num - 1]["ayahs"][ayah_num - 1]["text"]
-    recording_id = random_recording.id
-
-    # Create a form to have user input degree/category of mistake
-    degree_cat_form = modelformset_factory(TajweedEvaluation,
-                                           fields=('degree', 'category'))()
-    evaluation_count = Evaluation.objects.all().count()
-    recording_count = AnnotatedRecording.objects.filter(
-        file__gt='', file__isnull=False).count()
-    context = {'degree_category_form': degree_cat_form,
-               'surah_num': surah_num,
-               'ayah_num': ayah_num,
-               'ayah_text': ayah_text,
-               'audio_url': audio_url,
-               'session_key': session_key,
-               'recording_id': recording_id,
-               'evaluation_count': evaluation_count,
-               'recording_count': recording_count}
-    return render(request, 'evaluation/evaluator.html', context)
-
-
-def evaluator_help(request):
-    """Returns a simple static page with evaluation instructions.
-    :param request: rest API request object.
-    :type request: Request
-    :return: Rendered view of evaluator page with ayah and audio url
-    :rtype: HttpResponse
-    """
-    return render(request, 'evaluation/help.html', {})
 
 
 @api_view(('GET',))
@@ -242,11 +191,17 @@ def tajweed_evaluator(request):
 class EvaluationList(APIView):
     def get(self, request, *args, **kwargs):
         random_recording = get_low_evaluation_count()
-        # Load the Arabic Quran from JSON
-        file_name = os.path.join(BASE_DIR, 'utils/data-uthmani.json')
-        with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-            uthmani_quran = json.load(file)
-            uthmani_quran = uthmani_quran["quran"]
+        # Load the Uthmani Quran from JSON
+        quran_data_url = 'https://s3.amazonaws.com/zappa-tarteel-static/data-uthmani.json'
+        data_response = urlopen(quran_data_url)
+        json_data = data_response.read()
+        json_str = json_data.decode('utf-8-sig')
+        uthmani_quran = json.loads(json_str)
+        uthmani_quran = uthmani_quran['quran']
+        # file_name = os.path.join(BASE_DIR, 'utils/data-uthmani.json')
+        # with io.open(file_name, 'r', encoding='utf-8-sig') as file:
+        #     uthmani_quran = json.load(file)
+        #     uthmani_quran = uthmani_quran["quran"]
 
         # Fields
         surah_num = random_recording.surah_num

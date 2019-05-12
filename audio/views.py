@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from collections import defaultdict
-import csv
-import datetime
-import io
 import json
-import os
 import random
 import requests
-import zipfile
 from os.path import join, dirname, abspath
 from django.db.models import Count
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
-from django.utils.timezone import utc
-from restapi.models import AnnotatedRecording, DemographicInformation
+from django.http import JsonResponse
+from restapi.models import AnnotatedRecording
 from rest_framework.decorators import api_view
 from ranged_fileresponse import RangedFileResponse
+from urllib.request import urlopen
 
 
 # =============================================== #
@@ -101,9 +94,10 @@ def _sort_recitations_dict_into_lists(dictionary):
 # ================================= #
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 def get_ayah_translit(request):
     """Returns the transliteration text of an ayah.
+    Request body should have a JSON with "surah" (int) and "ayah" (int).
 
     :param request: rest API request object.
     :type request: Request
@@ -111,16 +105,18 @@ def get_ayah_translit(request):
     :rtype: JsonResponse
     """
     # Load the Transliteration Quran from JSON
-    file_name = join(BASE_DIR, 'utils/data-translit.json')
-    with io.open(file_name, 'r', encoding='utf-8-sig') as file:
-        TRNSLIT_QURAN = json.load(file)
-        file.close()
+    translit_data_url = 'https://s3.amazonaws.com/zappa-tarteel-static/data-translit.json'
+    data_response = urlopen(translit_data_url)
+    json_data = data_response.read()
+    json_str = json_data.decode('utf-8-sig')
+    quran_translit = json.loads(json_str)
+    quran_translit = quran_translit['quran']
 
     surah = int(request.data['surah'])
     ayah = int(request.data['ayah'])
 
     # The parameters `surah` and `ayah` are 1-indexed, so subtract 1.
-    line = TRNSLIT_QURAN["quran"]["surahs"][surah - 1]["ayahs"][ayah - 1]["text"]
+    line = quran_translit["surahs"][surah - 1]["ayahs"][ayah - 1]["text"]
 
     # Format as json and return response
     result = {"line": line}
