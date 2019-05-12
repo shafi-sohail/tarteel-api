@@ -31,3 +31,6 @@ then
 else
     echo "Not on develop or master. No deployment.";
 fi
+
+echo "Exit status: $?"
+exit 0

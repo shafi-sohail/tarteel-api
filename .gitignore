@@ -3,7 +3,6 @@ keyfile
 tarteel/settings_prod.py
 /static
 /media
-test*
 #Tarteel generated logs
 *_log.txt
 **.wav
