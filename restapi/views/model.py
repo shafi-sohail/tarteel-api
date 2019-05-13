@@ -1,9 +1,7 @@
 # System Imports
 from os.path import dirname, abspath
 import random
-import io
 import json
-import os
 from urllib.request import urlopen
 # Django
 from django.contrib.auth.models import User, Group
@@ -13,6 +11,7 @@ from django.db.models import Count
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import permissions
+from rest_framework.decorators import api_view
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -88,7 +87,7 @@ class AnnotatedRecordingFilter(filters.FilterSet):
 
 class AnnotatedRecordingViewSet(viewsets.ModelViewSet):
     """API to handle query parameters
-    Example: api/v1/recordings/?surah=114&ayah=1
+    Example: v1/recordings/?surah=114&ayah=1
     """
     serializer_class = AnnotatedRecordingSerializer
     queryset = AnnotatedRecording.objects.all()
@@ -140,7 +139,9 @@ class EvaluationFilter(filters.FilterSet):
     surah = filters.NumberFilter(field_name='associated_recording__surah_num')
     ayah = filters.NumberFilter(field_name='associated_recording__ayah_num')
     evaluation = filters.ChoiceFilter(choices=EVAL_CHOICES)
-    associated_recording = filters.ModelChoiceFilter(queryset=AnnotatedRecording.objects.all())
+    associated_recording = filters.ModelChoiceFilter(
+            queryset=AnnotatedRecording.objects.all()
+    )
 
     class Meta:
         model = Evaluation
@@ -149,7 +150,7 @@ class EvaluationFilter(filters.FilterSet):
 
 class EvaluationViewSet(viewsets.ModelViewSet):
     """API to handle query parameters
-    Example: api/v1/evaluations/?surah=114&ayah=1&evaluation=correct
+    Example: v1/evaluations/?surah=114&ayah=1&evaluation=correct
     """
     serializer_class = EvaluationSerializer
     queryset = Evaluation.objects.all()
@@ -189,12 +190,16 @@ class EvaluationList(APIView):
         else:
             # This is the code of get_low_evaluation_count() but this is getting the
             # choices of a specific ayah
-            recording_evals = AnnotatedRecording.objects.filter(surah_num=surah_num,
-                                                                ayah_num=ayah_num).annotate(total=Count('evaluation'))
+            recording_evals = AnnotatedRecording.objects.filter(
+                    surah_num=surah_num, ayah_num=ayah_num).annotate(
+                    total=Count('evaluation')
+            )
             recording_evals_dict = {entry: entry.total for entry in recording_evals}
 
             min_evals = min(recording_evals_dict.values())
-            min_evals_recordings = [k for k, v in recording_evals_dict.items() if v == min_evals]
+            min_evals_recordings = [
+                k for k, v in recording_evals_dict.items() if v == min_evals
+            ]
 
             recording = {random.choice(min_evals_recordings)}
 
@@ -258,3 +263,31 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
 
 
+@api_view(['GET'])
+def get_ayah_translit(request):
+    """Returns the transliteration text of an ayah.
+    Request body should have a JSON with "surah" (int) and "ayah" (int).
+
+    :param request: rest API request object.
+    :type request: Request
+    :return: A JSON response with the requested text.
+    :rtype: JsonResponse
+    """
+    # Load the Transliteration Quran from JSON
+    translit_data_url = 'https://s3.amazonaws.com/zappa-tarteel-static/data-translit.json'
+    data_response = urlopen(translit_data_url)
+    json_data = data_response.read()
+    json_str = json_data.decode('utf-8-sig')
+    quran_translit = json.loads(json_str)
+    quran_translit = quran_translit['quran']
+
+    surah = int(request.data['surah'])
+    ayah = int(request.data['ayah'])
+
+    # The parameters `surah` and `ayah` are 1-indexed, so subtract 1.
+    line = quran_translit["surahs"][surah - 1]["ayahs"][ayah - 1]["text"]
+
+    # Format as json and return response
+    result = {"line": line}
+
+    return Response(result)

@@ -1,7 +1,6 @@
 # System Imports
 from collections import defaultdict
 import datetime
-import io
 import json
 import os
 import random
@@ -12,7 +11,7 @@ from django.db.models import Count
 from rest_framework.views import APIView
 from rest_framework.response import Response
 # Tarteel Apps
-from audio.views import get_low_ayah_count, _sort_recitations_dict_into_lists
+from .utils import get_low_ayah_count, _sort_recitations_dict_into_lists
 from restapi.models import AnnotatedRecording, DemographicInformation
 from evaluation.models import Evaluation
 
@@ -142,6 +141,7 @@ class RecordingsCount(APIView):
 
 
 class GetAyah(APIView):
+    # TODO: Create Post to fetch specific ayah
     """Gets the surah num, ayah num, and text of an ayah of a specified maximum length."""
 
     def get(self, request, format=None):
@@ -212,8 +212,8 @@ class Index(APIView):
 
         :param request: rest API request object.
         :type request: Request
-        :return: HttpResponse with total number of recordings, today's recordings, and a check
-        to ask for demographic info.
+        :return: HttpResponse with total number of recordings, today's recordings, and a
+        check to ask for demographic info.
         :rtype: HttpResponse
         """
 
