@@ -98,15 +98,18 @@ class AnnotatedRecordingViewSet(viewsets.ModelViewSet):
 
 
 class DemographicInformationViewList(APIView):
-    """API endpoint that allows demographic information to be viewed or edited.
-    """
+    """API endpoint that allows demographic information to be viewed or edited."""
 
     def get(self, request, format=None):
+        """Returns the last 10 demograhics in the database."""
+        print("GET Demographic Info")
         recordings = DemographicInformation.objects.all().order_by('-timestamp')[:10]
         serializer = DemographicInformationSerializer(recordings, many=True)
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
+        """Create a new demographic based on session ID."""
+        print("POST Demographic Info")
         # User tracking - Ensure there is always a session key.
         session_key = request.session.session_key
 

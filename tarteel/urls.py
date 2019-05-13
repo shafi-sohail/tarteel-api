@@ -20,11 +20,11 @@ router = routers.DefaultRouter()
 
 urlpatterns = [
     # Rest API v1
-    path('api/v1/', include('restapi.urls')),
+    path('v1/', include('restapi.urls')),
     # Top Level API
     url(r'^admin/', admin.site.urls),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^api/demographics/', restapi.views.DemographicInformationViewList.as_view(),
+    url(r'^v1/demographics/', restapi.views.DemographicInformationViewList.as_view(),
         name='demographic'),
     url(r'^api/v1/evaluator/', restapi.views.EvaluationList.as_view()),
     url(r'^api/v2/submit_evaluation', restapi.views.EvaluationSubmission.as_view(), name="v2_evaluation_submission"),
@@ -33,7 +33,7 @@ urlpatterns = [
     url(r'^get_ayah_translit/', audio.views.get_ayah_translit),
     url(r'^get_total_count/', restapi.views.RecordingsCount.as_view(),
         name='recordingscount'),
-    url(r'^api/download-audio/', restapi.views.DownloadAudio.as_view()),
+    url(r'^download-audio/', restapi.views.DownloadAudio.as_view()),
     # Evaluation tools
     url(r'^evaluation/tajweed/', evaluation.views.tajweed_evaluator),
     url(r'^evaluation/submit_tajweed', evaluation.views.TajweedEvaluationList.as_view(),

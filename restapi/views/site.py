@@ -113,8 +113,7 @@ class About(APIView):
 
 class DownloadAudio(APIView):
     def get(self, request, *args, **kwargs):
-        """download_audio.html renderer. Returns the URLs of 15 random, non-empty
-        audio samples.
+        """Returns the URLs of 15 random, non-empty audio samples.
 
          :param request: rest API request object.
          :type request: Request
