@@ -181,6 +181,7 @@ class EvaluationList(APIView):
         return Response(ayah)
 
     def post(self, request, *args, **kwargs):
+        print("POST evaluator/:\n{}".format(request.data))
         ayah_num = int(request.data['ayah'])
         surah_num = str(request.data['surah'])
 
