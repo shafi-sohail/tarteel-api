@@ -12,7 +12,7 @@ jobs:
   include:
   - stage: test
     name: Tests
-    script: echo "TODO tests"
+    script: python manage.py test
 
 before_deploy: git-crypt unlock keyfile
 deploy:
