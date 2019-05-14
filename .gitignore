@@ -4,8 +4,6 @@ tarteel/settings_prod.py
 /static
 /media
 /te
-/iqra/whooshdir/
-
 #Tarteel generated logs
 *_log.txt
 **.wav
