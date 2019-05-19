@@ -7,15 +7,9 @@ before_install:
 install:
 - pip install -r requirements.txt
 - sudo bash install_gitcrypt.sh
-
-jobs:
-  include:
-  - stage: security
-    name: Security
-    script: git-crypt unlock keyfile
-  - stage: test
-    name: Tests
-    script: python manage.py test
+script:
+  - git-crypt unlock keyfile
+  - python manage.py test
 
 deploy:
   provider: script
