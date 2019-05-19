@@ -37,7 +37,7 @@ translation_json_response = {
 }
 
 
-class IqraTest(APITestCase):
+class IqraTestCase(APITestCase):
     def test_search(self):
         url = reverse('iqra-search')
         response = self.client.post(url, search_json_request, format='json')

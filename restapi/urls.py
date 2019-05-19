@@ -8,10 +8,11 @@ router = routers.DefaultRouter()
 
 router.register('recordings', views.model.AnnotatedRecordingViewSet)
 router.register('evaluation_set', views.model.EvaluationViewSet)
+router.register('demographic', views.model.DemographicViewSet)
 
 urlpatterns = [
     path('demographics/', views.model.DemographicInformationViewList.as_view(),
-         name='demographic'),
+         name='demographics'),
     path('get_ayah_translit/', views.model.get_ayah_translit),
     path('get_total_count/', views.RecordingsCount.as_view(), name='recordingscount'),
     path('evaluator/', views.model.EvaluationList.as_view()),

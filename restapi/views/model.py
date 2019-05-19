@@ -37,6 +37,7 @@ STRING_NA_VALUE = "N/A"
 
 
 class AnnotatedRecordingList(APIView):
+    """TODO: Deprecated"""
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     # permission_classes = (RecordingPermissions,)
 
@@ -86,7 +87,7 @@ class AnnotatedRecordingFilter(filters.FilterSet):
 
 
 class AnnotatedRecordingViewSet(viewsets.ModelViewSet):
-    """API to handle query parameters
+    """View set to handle query parameters and all request types
     Example: v1/recordings/?surah=114&ayah=1
     """
     serializer_class = AnnotatedRecordingSerializer
@@ -96,8 +97,24 @@ class AnnotatedRecordingViewSet(viewsets.ModelViewSet):
     # permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
 
+class DemographicFilter(filters.FilterSet):
+    gender = filters.CharFilter(field_name='gender')
+    qiraah = filters.CharFilter(field_name='qiraah')
+    age = filters.CharFilter(field_name='age')
+    ethnicity = filters.CharFilter(field_name='ethnicity')
+
+
+class DemographicViewSet(viewsets.ModelViewSet):
+    """View set for demographics."""
+    serializer_class = DemographicInformationSerializer
+    queryset = DemographicInformation.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filter_class = DemographicFilter
+
+
 class DemographicInformationViewList(APIView):
-    """API endpoint that allows demographic information to be viewed or edited."""
+    """TODO: Deprecated
+    API endpoint that allows demographic information to be viewed or edited."""
 
     def get(self, request, format=None):
         """Returns the last 10 demograhics in the database."""
