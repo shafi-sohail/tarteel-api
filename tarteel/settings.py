@@ -106,6 +106,7 @@ LOCAL_APPS = [
     'restapi',
     'evaluation',
     'iqra',
+    'quran',
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -252,6 +253,7 @@ AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', str, 'tarteel-frontend-dev')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', str, '')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', str, '')
 AWS_QUERYSTRING_EXPIRE = env('AWS_QUERYSTRING_EXPIRE', str, '157784630')
+AWS_DEFAULT_ACL = None
 DEFAULT_FILE_STORAGE = env('DEFAULT_FILE_STORAGE', str,
                            'django.core.files.storage.FileSystemStorage')
 
