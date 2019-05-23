@@ -1,8 +1,9 @@
 # Tarteel specific files
+keyfile
 tarteel/settings_prod.py
 /static
 /media
-test*
+/te
 #Tarteel generated logs
 *_log.txt
 **.wav
