@@ -1,9 +1,11 @@
+import random
 # Django
 from django_filters import rest_framework as filters
+from django.forms.models import model_to_dict
 # Django Rest Framework
+from rest_framework import status
 from rest_framework import viewsets
-from rest_framework.decorators import action
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 # Quran app
 from quran.models import Surah, Ayah, AyahWord, Translation
@@ -47,6 +49,27 @@ class AyahViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (filters.DjangoFilterBackend,)
     filter_class = AyahFilter
 
+    @action(detail=False, methods=['get'])
+    def random(self, request):
+        # User tracking - Ensure there is always a session key.
+        session_key = request.session.session_key
+        if not session_key:
+            request.session.create()
+            session_key = request.session.session_key
+
+        ayah_count = Ayah.objects.count() - 1
+        rand_index = random.randint(0, ayah_count)
+        rand_ayah = Ayah.objects.all()[rand_index]
+        surah_num = rand_ayah.surah.number
+        ayah_num = rand_ayah.number
+        words = AyahWord.objects.filter(ayah=rand_ayah, ayah__number=ayah_num,
+                                        ayah__surah__number=surah_num)
+        ayah_dict = model_to_dict(rand_ayah)
+        ayah_dict['words'] = list(reversed(words.values()))
+        ayah_dict['session_id'] = session_key
+
+        return Response(ayah_dict)
+
 
 class AyahWordFilter(filters.FilterSet):
     """Filter words by surah, ayah, and word number."""
@@ -88,15 +111,53 @@ class TranslationViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 @api_view(['GET'])
+def get_ayah(request, surah, ayah):
+    """ Returns the current, next, and previous ayah. Assumes next/previous surah if
+    out of bounds.
+    :param request: rest API request object.
+    :type request: Request
+    :param surah: The surah number.
+    :type surah: int
+    :param ayah: the ayah number.
+    :type ayah: int
+    :return: A JSON response with the requested text.
+    :rtype: Response
+    """
+    try:
+        curr_ayah = model_to_dict(Ayah.objects.get(number=ayah, surah__number=surah))
+    except Ayah.DoesNotExist:
+        return Response({"detail": "Ayah not found"}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        next_ayah = model_to_dict(Ayah.objects.get(number=ayah+1, surah__number=surah))
+    except (Ayah.DoesNotExist, AttributeError):
+        new_surah = 0 if surah == 114 else surah
+        next_ayah = model_to_dict(Ayah.objects.get(number=1, surah__number=new_surah+1))
+    try:
+        prev_ayah = model_to_dict(Ayah.objects.get(number=ayah-1, surah__number=surah))
+    except (Ayah.DoesNotExist, AttributeError):
+        new_surah = 115 if surah == 1 else surah
+        prev_ayah = model_to_dict(Ayah.objects.filter(surah__number=new_surah-1).last())
+    response = {
+        'ayah': curr_ayah,
+        'next': next_ayah,
+        'previous': prev_ayah
+    }
+
+    return Response(response)
+
+
+@api_view(['GET'])
 def get_surah(request, surah_num):
     """Returns the ayahs of specific surah.
 
     :param request: rest API request object.
     :type request: Request
+    :param surah_num: The surah number
+    :type surah_num: int
     :return: A JSON response with the requested text.
-    :rtype: JsonResponse
+    :rtype: Response
     """
-    ayahs = Ayah.objects.filter(surah__number=int(surah_num))
+    ayahs = Ayah.objects.filter(surah__number=surah_num)
     response = {
         'ayahs': ayahs
     }
@@ -111,7 +172,7 @@ def get_ayah_translit(request):
     :param request: rest API request object.
     :type request: Request
     :return: A JSON response with the requested text.
-    :rtype: JsonResponse
+    :rtype: Response
     """
     surah = int(request.data['surah'])
     ayah = int(request.data['ayah'])
