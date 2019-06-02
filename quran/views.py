@@ -1,12 +1,11 @@
 import random
 # Django
-from django.forms.models import model_to_dict
 from django_filters import rest_framework as filters
 from django.forms.models import model_to_dict
 # Django Rest Framework
 from rest_framework import status
 from rest_framework import viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 # Quran app
 from quran.models import Surah, Ayah, AyahWord, Translation
