@@ -8,6 +8,8 @@ UTH_JSON_PATH = '/Users/piraka/Downloads/data-uthmani.json'
 
 
 class Command(BaseCommand):
+    help = "Populates the quran database with information."
+
     def handle(self, *args, **options):
         # Get the surah names
         with open(UTH_JSON_PATH, encoding='utf-8') as uth_json_file:
