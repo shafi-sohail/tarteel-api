@@ -16,18 +16,20 @@ urlpatterns = [
     path('v1/quran/', include('quran.urls')),
     # Iqra
     path('iqra/', include('iqra.urls')),
-    # Top Level API
-    path('admin/', admin.site.urls),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    # Evaluation tools
+    # Evaluation tools TODO: Refactor into own interface
     path('api/get_evaluations_count/', evaluation.views.get_evaluations_count,
         name="get_evaluations_count"),
     path('evaluation/tajweed/', evaluation.views.tajweed_evaluator),
     path('evaluation/submit_tajweed', evaluation.views.TajweedEvaluationList.as_view(),
         name='tajweed-evaluation'),
-    # Django-allauth Login
-    path('accounts/', include('allauth.urls')),
+    # Top Level API
+    path('admin/', admin.site.urls),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api-token-auth/', authviews.obtain_auth_token),
+    # Django-allauth and rest-auth
+    path('', include('profiles.urls')),
+    # Pinax Badges
+    path('badges/', include("pinax.badges.urls", namespace="pinax_badges")),
 ]
 
 if settings.DEBUG:
