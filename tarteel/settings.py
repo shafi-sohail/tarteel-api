@@ -172,8 +172,8 @@ AUTHENTICATION_BACKENDS = (
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 # Dictionary containing provider specific settings.
 SOCIALACCOUNT_PROVIDERS = {
-    'google'  : {
-        'SCOPE'      : [
+    'google': {
+        'SCOPE': [
             'profile',
             'email',
             'openid',

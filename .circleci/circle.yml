@@ -1,0 +1,82 @@
+version: 2
+
+executors:
+  tarteel-exec:
+    docker:
+      - image: anas9011/tarteel-deploy:0.0.2
+    working_directory: /var/task/tarteel-api
+
+jobs:
+  # Run the Django test suite
+  testing:
+    executor: tarteel-exec
+    steps:
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+            - v1-dependencies-
+      - run:
+          name: Install dependencies
+          commane: pip install -r requirements.txt
+      - run:
+          name: Django tests
+          command: python manage.py test
+      - store_artifacts:
+          path: /tmp/artifacts
+  # Use Zappa to deploy to staging
+  staging:
+    executor: tarteel-exec
+    steps:
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+            - v1-dependencies-
+      - run:
+          name: Install dependencies
+          commane: pip install -r requirements.txt
+      - run:
+          name: Decrypt
+          command: echo "$GIT_CRYPT_KEY" | base64 -d > git-crypt.key && git-crypt unlock git-crypt.key
+      - run:
+          name: Zappa deploy dev
+          command: zappa update dev
+      - save_cache:
+          paths:
+            - /var/task/tarteel
+          key: v1-dependencies-{{ checksum "requirements.txt" }}\
+  # Use Zappa to deploy to production
+  production:
+    executor: tarteel-exec
+    steps:
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+            - v1-dependencies-
+      - run:
+          name: Install dependencies
+          commane: pip install -r requirements.txt
+      - run:
+          name: Decrypt
+          command: echo "$GIT_CRYPT_KEY" | base64 -d > git-crypt.key && git-crypt unlock git-crypt.key
+      - run:
+          name: Zappa deploy prod
+          command: zappa update prod
+      - save_cache:
+          paths:
+            - /var/task/tarteel
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+
+workflows:
+  version: 2
+  deployment:
+    jobs:
+      - testing
+      - staging:
+          filters:
+            branches:
+              only: develop
+      - production:
+          filters:
+            branches:
+              only: master
+
