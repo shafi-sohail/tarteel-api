@@ -108,9 +108,9 @@ class TranslationFilter(filters.FilterSet):
 class TranslationViewSet(viewsets.ReadOnlyModelViewSet):
     """Read only view set for an ayah's translation."""
     queryset = Translation.objects.all()
-    serializer_class = quran.serializers.Translation
+    serializer_class = quran.serializers.TranslationSerializer
     filter_backends = (filters.DjangoFilterBackend,)
-    filter_class = AyahWordFilter
+    filter_class = TranslationFilter
 
 
 @api_view(['GET'])
@@ -189,3 +189,5 @@ def get_ayah_translit(request):
     # Format as JSON and return response
     result = {"line": line}
     return Response(result)
+
+

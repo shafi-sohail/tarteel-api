@@ -47,7 +47,10 @@ if 'SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda':
 # Local development instead
 else:
     LOCAL_DEV = True
-    USE_DEV_DB = True
+    USE_LOCAL_DB = True
+
+USE_DEV_DB = True
+USE_LOCAL_DB = False
 
 # Local time zone: http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 TIME_ZONE = env('TIME_ZONE', str, default='UTC')
@@ -94,19 +97,24 @@ THIRD_PARTY_APPS = [
     'django_extensions',
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_auth',
+    'rest_auth.registration',
     'corsheaders',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    # 'allauth.socialaccount.providers.facebook',
-    # 'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.facebook',
     # 'allauth.socialaccount.providers.github',
+    'pinax.badges',
+
 ]
 LOCAL_APPS = [
     'restapi',
     'evaluation',
     'iqra',
     'quran',
+    'profiles',
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -171,17 +179,19 @@ AUTHENTICATION_BACKENDS = (
 # Django Allauth Configs
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 # Dictionary containing provider specific settings.
-""" Commented out until regular auth fully setup
 SOCIALACCOUNT_PROVIDERS = {
-    'github': {
+    'google': {
         'SCOPE': [
-            'user',
-            'read:user'
+            'profile',
+            'email',
+            'openid',
         ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
     },
-    # https://django-allauth.readthedocs.io/en/latest/providers.html#facebook
     'facebook': {
-        'METHOD': 'oauth2',
+        'METHOD': 'js_sdk',
         'SCOPE': ['email', 'default'],
         'AUTH_PARAMS': {'auth_type': 'reauthenticate'},
         'INIT_PARAMS': {'cookie': True},
@@ -191,26 +201,26 @@ SOCIALACCOUNT_PROVIDERS = {
             'name',
             'first_name',
             'last_name',
-            'verified',
-            'locale',
-            'timezone',
-            'link',
             'gender',
-            'updated_time',
         ],
         'EXCHANGE_TOKEN': True,
-        'LOCALE_FUNC': lambda request: 'en_US',  # Temp return just US
         'VERIFIED_EMAIL': False,
-        'VERSION': 'v2.12',
+        'VERSION': 'v3.3',
     }
 }
+""" Commented out until regular auth fully setup
+    # https://django-allauth.readthedocs.io/en/latest/providers.html#facebook
+    
 """
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-url
 # LOGIN_URL = env('LOGIN_URL')
 # LOGOUT_URL = env('LOGOUT_URL')
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-redirect-url
-LOGIN_REDIRECT_URL = env('LOGIN_REDIRECT_URL', str, '/accounts/profile/')
+LOGIN_REDIRECT_URL = env('LOGIN_REDIRECT_URL', str, '/')
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = True
+AUTH_USER_MODEL = "profiles.UserProfile"
 
 # EMAIL
 # ------------------------------------------------------------------------------
