@@ -1,0 +1,109 @@
+version: 2.1
+
+commands:
+  deploy-flow:
+    description: "Run migrations and the Zappa update command."
+    parameters:
+      stage:
+        type: string
+        default: dev
+    steps:
+      - checkout
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
+      - restore_cache:
+          keys:
+            - v1-py-cache-{{ checksum "requirements.txt" }}
+      - run:
+          name: Install dependencies
+          command: |
+            pip install virtualenv
+            virtualenv ~/te
+            echo "source ~/te/bin/activate" >> $BASH_ENV
+            source $BASH_ENV
+            pip install -r requirements.txt
+      - run:
+          name: Decrypt
+          command: echo "$GIT_CRYPT_KEY" | base64 --decode > git-crypt.key && git-crypt unlock git-crypt.key
+      - run:
+          name: Migrate DB
+          command: python manage.py makemigrations && python manage.py migrate
+      - run:
+          name: Update staging API
+          command: zappa update << parameters.stage >>
+      - save_cache:
+          paths:
+            - ~/venv
+          key: v1-py-cache-{{ checksum "requirements.txt" }}
+
+executors:
+  tarteel-exec:
+    docker:
+      - image: anas9011/tarteel-deploy:0.0.5
+    working_directory: ~/tarteel
+
+jobs:
+  # Run the Django test suite
+  testing:
+    executor: tarteel-exec
+    environment:
+      LOCAL_DB: true
+    steps:
+      - checkout
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          name: Install dependencies
+          command: |
+            pip install virtualenv
+            virtualenv ~/te
+            echo "source ~/te/bin/activate" >> $BASH_ENV
+            source $BASH_ENV
+            pip install -r requirements.txt
+      - run:
+          name: Decrypt
+          command: echo "$GIT_CRYPT_KEY" | base64 --decode > git-crypt.key && git-crypt unlock git-crypt.key
+      - run:
+          name: Django tests
+          command: python manage.py test
+      - save_cache:
+          paths:
+            - ~/venv
+          key: v1-py-cache-{{ checksum "requirements.txt" }}
+      - store_artifacts:
+          path: /tmp/artifacts
+  # Use Zappa to deploy to staging
+  staging:
+    executor: tarteel-exec
+    environment:
+      DEV_DB: true
+    steps:
+      - deploy-flow:
+          stage: dev
+  # Use Zappa to deploy to production
+  production:
+    executor: tarteel-exec
+    environment:
+      PROD_DB: true
+    steps:
+      - deploy-flow:
+          stage: prod
+
+workflows:
+  version: 2
+  deployment:
+    jobs:
+#      - testing
+      - staging:
+          filters:
+            branches:
+              only:
+                - develop
+                - anas/ci
+      - production:
+          filters:
+            branches:
+              only: master

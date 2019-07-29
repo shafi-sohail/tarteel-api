@@ -5,7 +5,7 @@ import os
 import warnings
 
 # Env file setup
-ROOT = environ.Path(__file__) - 2   # 2 directories up = tarteel.io/
+ROOT = environ.Path(__file__) - 2  # 2 directories up = tarteel.io/
 BASE_DIR = ROOT()
 
 # Defaults
@@ -17,7 +17,6 @@ LOCAL_DEV = False
 env = environ.Env()
 env.read_env(str(ROOT.path('tarteel/.env')))
 
-
 ALLOWED_HOSTS = ['www.tarteel.io', 'tarteel.io', '.tarteel.io', '0.0.0.0', '127.0.0.1',
                  'www.api-dev.tarteel.io', 'api-dev.tarteel.io', 'apiv1.tarteel.io',
                  'www.apiv1.tarteel.io',
@@ -26,7 +25,6 @@ ALLOWED_HOSTS = ['www.tarteel.io', 'tarteel.io', '.tarteel.io', '0.0.0.0', '127.
                  env('PROD_GW_IP', str, default=''), env('DEV_GW_IP', str, default=''),
                  'testserver', 'localhost']
 
-
 # GENERAL
 # ------------------------------------------------------------------------------
 SECRET_KEY = env('SECRET_KEY', str, default='development_security_key')
@@ -34,16 +32,17 @@ SECRET_KEY = env('SECRET_KEY', str, default='development_security_key')
 DEBUG = True
 # DEBUG = env('DEBUG', bool, default=True)
 # Get the settings from zappa_settings.json
-if 'SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda':
-    # Don't use the local DB if in dev/prod
-    USE_LOCAL_DB = False
+if ('SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda') or (
+        'CI' in os.environ and os.environ['CI'] == 'true'):
     # In dev and prod environments, DEBUG is always False. Local is True
     DEBUG = False
-    # Use dev or prod DB accordingly
-    if "DEV_DB" in os.environ and (os.environ.get("DEV_DB") == "true"):
+    # Use dev or prod DB accordingly. Local for testing.
+    if 'DEV_DB' in os.environ and (os.environ.get('DEV_DB') == 'true'):
         USE_DEV_DB = True
-    elif "PROD_DB" in os.environ and (os.environ.get("PROD_DB") == "true"):
+    elif 'PROD_DB' in os.environ and (os.environ.get('PROD_DB') == 'true'):
         USE_PROD_DB = True
+    elif 'LOCAL_DB' in os.environ and (os.environ.get('LOCAL_DB') == 'true'):
+        USE_LOCAL_DB = True
 # Local development instead
 else:
     LOCAL_DEV = True
@@ -73,7 +72,7 @@ SITE_ID = 2 if DEBUG else 1
 # Set the sites migration folders locally to create default site changes for
 # authentication testing. socialaccount added b/c it it depends on sites.
 MIGRATION_MODULES = {
-    'sites': 'tarteel.fixtures.sites_migrations',
+    'sites'        : 'tarteel.fixtures.sites_migrations',
     'socialaccount': 'tarteel.fixtures.socialaccount_migrations'
 }
 
@@ -115,13 +114,12 @@ LOCAL_APPS = [
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-
 # MIDDLEWARE
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',        # CORS
-    'django.middleware.csrf.CsrfViewMiddleware',    # CSRF
+    'corsheaders.middleware.CorsMiddleware',  # CORS
+    'django.middleware.csrf.CsrfViewMiddleware',  # CSRF
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -130,14 +128,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-
 # URLS
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
 ROOT_URLCONF = 'tarteel.urls'
 # https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
 WSGI_APPLICATION = 'tarteel.wsgi.application'
-
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -148,7 +144,6 @@ elif USE_DEV_DB:
     DATABASES = {'default': env.db('PSQL_DEV_URL')}
 elif USE_LOCAL_DB:
     DATABASES = {'default': env.db('SQLITE_URL')}
-
 
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
@@ -177,8 +172,8 @@ AUTHENTICATION_BACKENDS = (
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 # Dictionary containing provider specific settings.
 SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
+    'google'  : {
+        'SCOPE'      : [
             'profile',
             'email',
             'openid',
@@ -188,11 +183,11 @@ SOCIALACCOUNT_PROVIDERS = {
         }
     },
     'facebook': {
-        'METHOD': 'js_sdk',
-        'SCOPE': ['email', 'default'],
-        'AUTH_PARAMS': {'auth_type': 'reauthenticate'},
-        'INIT_PARAMS': {'cookie': True},
-        'FIELDS': [
+        'METHOD'        : 'js_sdk',
+        'SCOPE'         : ['email', 'default'],
+        'AUTH_PARAMS'   : {'auth_type': 'reauthenticate'},
+        'INIT_PARAMS'   : {'cookie': True},
+        'FIELDS'        : [
             'id',
             'email',
             'name',
@@ -202,7 +197,7 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
         'EXCHANGE_TOKEN': True,
         'VERIFIED_EMAIL': False,
-        'VERSION': 'v3.3',
+        'VERSION'       : 'v3.3',
     }
 }
 """ Commented out until regular auth fully setup
@@ -252,7 +247,6 @@ MEDIA_ROOT = ROOT('media')
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = '/media/'
 
-
 # AWS
 # --------------------------------------
 # https://simpleisbetterthancomplex.com/tutorial/2017/08/01/how-to-setup-amazon-s3-in-a-django-project.html
@@ -269,10 +263,10 @@ DEFAULT_FILE_STORAGE = env('DEFAULT_FILE_STORAGE', str,
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [ROOT('templates')],
+        'BACKEND' : 'django.template.backends.django.DjangoTemplates',
+        'DIRS'    : [ROOT('templates')],
         'APP_DIRS': True,
-        'OPTIONS': {
+        'OPTIONS' : {
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
@@ -284,16 +278,17 @@ TEMPLATES = [
 ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_PARSER_CLASSES': (
+    'DEFAULT_PARSER_CLASSES'        : (
         'rest_framework.parsers.JSONParser',
     ),
-    'DEFAULT_RENDERER_CLASSES': (
+    'DEFAULT_RENDERER_CLASSES'      : (
         # 'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.JSONRenderer',
     ),
-    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 100,
+    'DEFAULT_FILTER_BACKENDS'       : (
+    'django_filters.rest_framework.DjangoFilterBackend',),
+    'DEFAULT_PAGINATION_CLASS'      : 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE'                     : 100,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
     ),
