@@ -9,8 +9,10 @@ jobs:
     steps:
     - checkout
     - run:
+        name: Change bin directory owner to circleci
         command: sudo chown -R circleci:circleci /usr/local/bin
     - run:
+        name: Change pkgs directory owner to circleci
         command: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
     - restore_cache:
         keys:
@@ -46,8 +48,10 @@ jobs:
     steps:
     - checkout
     - run:
+        name: Change bin directory owner to circleci
         command: sudo chown -R circleci:circleci /usr/local/bin
     - run:
+        name: Change pkgs directory owner to circleci
         command: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
     - restore_cache:
         keys:
@@ -65,11 +69,22 @@ jobs:
         command: echo "$GIT_CRYPT_KEY" | base64 --decode > git-crypt.key && git-crypt
           unlock git-crypt.key
     - run:
+        name: Open access to DB
+        command: |
+          public_ip_address=$(wget -qO- http://checkip.amazonaws.com)
+          aws ec2 authorize-security-group-ingress --region $AWS_DEFAULT_REGION --group-id $AWS_SG_ID \
+          --ip-permissions "[{\"IpProtocol\": \"tcp\", \"FromPort\": 5432, \"ToPort\": 5432, \"IpRanges\": [{\"CidrIp\": \"${public_ip_address}/32\", \"Description\": \"CircleCI\"}]}]"
+    - run:
         name: Migrate DB
         command: python manage.py makemigrations && python manage.py migrate
     - run:
         name: Update staging API
         command: zappa update prod
+    - run:
+        name: Close access to DB
+        command: |
+          aws ec2 revoke-security-group-ingress --group-id $AWS_SG_ID \
+          --protocol tcp --port 5432 --cidr $public_ip_address/32
     - save_cache:
         paths:
         - ~/venv
