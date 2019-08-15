@@ -156,19 +156,37 @@ def get_ayah(request, surah, ayah):
 
 
 @api_view(['GET'])
-def get_surah(request, surah_num):
+def get_surah(request, surah):
     """Returns the ayahs of specific surah.
 
     :param request: rest API request object.
     :type request: Request
-    :param surah_num: The surah number
-    :type surah_num: int
+    :param surah: The surah number
+    :type surah: int
     :return: A JSON response with the requested text.
     :rtype: Response
     """
-    ayahs = Ayah.objects.filter(surah__number=surah_num)
+    ayahs = Ayah.objects.filter(chapter_id__number=surah)
+    if not ayahs.exists():
+        if surah > 114:
+            surah = 1
+            ayahs = Ayah.objects.filter(chapter_id__number=surah)
+        elif surah < 1:
+            surah = 114
+            ayahs = Ayah.objects.filter(chapter_id__number=surah)
+    ayah_list = []
+    for ayah in ayahs:
+        words = AyahWord.objects.filter(ayah=ayah.id,
+                                        ayah__chapter_id__number=surah)
+        translations = Translation.objects.filter(ayah__verse_number=ayah.id,
+                                                  ayah__chapter_id__number=surah)
+        single_response = model_to_dict(ayah)
+        single_response['words'] = list(reversed(words.values()))
+        single_response['translations'] = list(translations.values())
+        ayah_list.append(single_response)
     response = {
-        'ayahs': ayahs
+        'results': ayah_list,
+        'count': len(ayah_list)
     }
     return Response(response)
 

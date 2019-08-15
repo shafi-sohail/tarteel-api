@@ -11,7 +11,8 @@ router.register('translation', views.TranslationViewSet)
 
 urlpatterns = [
     path('get_ayah_translit/', views.get_ayah_translit),
-    path('<int:surah>/<int:ayah>/', views.get_ayah)
+    path('<int:surah>/<int:ayah>/', views.get_ayah),
+    path('<int:surah>/', views.get_surah)
 ]
 
 urlpatterns += router.urls
