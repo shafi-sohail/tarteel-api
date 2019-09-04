@@ -7,6 +7,7 @@ import random
 from urllib.request import urlopen
 # Django
 from django.db.models import Count
+from django.http import HttpResponseRedirect
 # Django Rest Framework
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -279,3 +280,9 @@ class Profile(APIView):
             'recording_count': recording_count,
             'user_recording_count': user_recording_count
         })
+
+
+def redirect_to_tarteelio(request):
+    """Simple redirect to the home page."""
+    return HttpResponseRedirect("https://www.tarteel.io")
+

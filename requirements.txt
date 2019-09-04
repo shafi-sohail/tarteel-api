@@ -16,5 +16,6 @@ jmespath==0.9.3
 pinax-badges==2.0.0
 psycopg2-binary==2.8.2
 python-dateutil==2.6.1
+sentry-sdk==0.11.2
 whoosh==2.7.4
 zappa==0.47.0

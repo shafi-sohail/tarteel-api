@@ -7,9 +7,11 @@ from django.urls import path, include
 from rest_framework.authtoken import views as authviews
 # Tarteel
 import evaluation.views
+from restapi.views.site import redirect_to_tarteelio
 
 
 urlpatterns = [
+    path('', redirect_to_tarteelio, name='homepage-redirect'),
     # Rest API v1
     path('v1/', include('restapi.urls')),
     path('v1/', include('evaluation.urls')),

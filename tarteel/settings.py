@@ -1,8 +1,18 @@
 # -*- coding: utf-8 -*-
-import django.conf
 import environ
 import os
 import warnings
+
+import django.conf
+
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
+# Sentry error logging setup
+sentry_sdk.init(
+    dsn="https://02ac52f4875649c79aa6dda8c38c1906@sentry.io/1551944",
+    integrations=[DjangoIntegration()]
+)
 
 # Env file setup
 ROOT = environ.Path(__file__) - 2  # 2 directories up = tarteel.io/
