@@ -18,10 +18,9 @@ env = environ.Env()
 env.read_env(str(ROOT.path('tarteel/.env')))
 
 ALLOWED_HOSTS = ['www.tarteel.io', 'tarteel.io', '.tarteel.io', '0.0.0.0', '127.0.0.1',
-                 'www.api-dev.tarteel.io', 'api-dev.tarteel.io', 'apiv1.tarteel.io',
-                 'www.apiv1.tarteel.io',
-                 env('EC2_IP', str, default=''), env('EC2_IP1', str, default=''),
-                 env('EC2_IP2', str, default=''), env('ELB_IP', str, default=''),
+                 'www.api-dev.tarteel.io', 'api-dev.tarteel.io', 'api.tarteel.io',
+                 'www.api.tarteel.io', '*.now.sh',
+                 env('EC2_IP', str, default=''), env('ELB_IP', str, default=''),
                  env('PROD_GW_IP', str, default=''), env('DEV_GW_IP', str, default=''),
                  'testserver', 'localhost']
 
@@ -143,7 +142,7 @@ if USE_PROD_DB:
 elif USE_DEV_DB:
     DATABASES = {'default': env.db('PSQL_DEV_URL')}
 elif USE_LOCAL_DB:
-    DATABASES = {'default': env.db('SQLITE_URL')}
+    DATABASES = {'default': env.db('PSQL_LOCAL_URL')}
 
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
@@ -296,7 +295,7 @@ REST_FRAMEWORK = {
 
 # django-corsheader
 # ------------------------------------------------------------------------------
-CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 
 # SECURITY

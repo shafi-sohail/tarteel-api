@@ -1,18 +1,18 @@
-# System Imports
+# System
 from os.path import dirname, abspath
 # Django
 from django_filters import rest_framework as filters
 # Django Rest Framework
 from rest_framework import viewsets
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
-from rest_framework import permissions
-# Tarteel Apps
+from rest_framework.permissions import IsAuthenticated
+# Tarteel
 from restapi.serializers import DemographicInformationSerializer, \
     AnnotatedRecordingSerializer
 from restapi.models import AnnotatedRecording, DemographicInformation
-from restapi.permissions import RecordingPermissions
 
 
 # =============================================== #
@@ -44,7 +44,8 @@ class AnnotatedRecordingViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.DjangoFilterBackend,)
     filter_class = AnnotatedRecordingFilter
     parser_classes = (MultiPartParser,)
-    # permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -80,4 +81,6 @@ class DemographicViewSet(viewsets.ModelViewSet):
     queryset = DemographicInformation.objects.all()
     filter_backends = (filters.DjangoFilterBackend,)
     filter_class = DemographicFilter
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 

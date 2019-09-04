@@ -1,28 +1,29 @@
 # -*- coding: utf-8 -*-
+# System
+import io
+import json
+import os
+import random
 # Django
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Count
 from django.forms.models import model_to_dict
 from django_filters import rest_framework as filters
-# REST
+# Django Rest Framework
 from rest_framework import status
 from rest_framework import viewsets
-from rest_framework.decorators import action
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import action, api_view, renderer_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, renderer_classes
-from rest_framework.renderers import JSONRenderer
 # Tarteel
 from evaluation.models import TajweedEvaluation, Evaluation
 from evaluation.serializers import TajweedEvaluationSerializer, EvaluationSerializer
 from restapi.models import AnnotatedRecording
 from quran.models import Ayah, AyahWord, Translation
-# Python
-import io
-import json
-import os
-import random
 
 # =============================================== #
 #           Constant Global Definitions           #
@@ -183,6 +184,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     queryset = Evaluation.objects.all()
     filter_backends = (filters.DjangoFilterBackend,)
     filter_class = EvaluationFilter
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     @action(detail=False, methods=['get'])
     def low_count(self, request):

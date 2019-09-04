@@ -22,8 +22,9 @@ urlpatterns = [
     path('evaluation/tajweed/', evaluation.views.tajweed_evaluator),
     path('evaluation/submit_tajweed', evaluation.views.TajweedEvaluationList.as_view(),
         name='tajweed-evaluation'),
-    # Top Level API
+    # Admin Page
     path('admin/', admin.site.urls),
+    # Authentication: DRF Auth URLs and user token generation
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api-token-auth/', authviews.obtain_auth_token),
     # Django-allauth and rest-auth

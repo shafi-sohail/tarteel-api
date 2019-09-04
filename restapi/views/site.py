@@ -8,8 +8,10 @@ from urllib.request import urlopen
 # Django
 from django.db.models import Count
 # Django Rest Framework
-from rest_framework.views import APIView
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 # Tarteel Apps
 from .utils import _sort_recitations_dict_into_lists
 from restapi.models import AnnotatedRecording, DemographicInformation
@@ -165,7 +167,7 @@ class GetSurah(APIView):
 
 
 class Index(APIView):
-
+    # TODO: Use Quran API or is deprecated?
     def get(self, request, format=None):
         """ Gets today's and total recording counts as well as checks
         for whether we have demographic info for the session.
@@ -204,6 +206,8 @@ class Index(APIView):
 
 
 class Profile(APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request, session_key):
         """ Returns the session profile data.
