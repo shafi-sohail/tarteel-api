@@ -308,16 +308,19 @@ REST_FRAMEWORK = {
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_REGEX_WHITELIST = [
-    r"^https:\/\/\w+\.tarteel\.io",
+    r"^https:\/\/\w+\.tarteel\.io$",
     r"^https:\/\/\w+(?:-\w+)*\.tarteel\.io$",
     r"^https:\/\/\w+\.now\.sh$",
     r"^https:\/\/\w+(?:-\w+)*\.now\.sh$",
+    r"^http:\/\/localhost:3000$",
+    r"^https:\/\/localhost:3000$",
 ]
 CSRF_TRUSTED_ORIGINS = [
     'tarteel.io',
     '.tarteel.io',
     'now.sh',
     '.now.sh',
+    'localhost',
 ]
 
 # SECURITY
