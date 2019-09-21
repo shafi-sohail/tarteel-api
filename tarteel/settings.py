@@ -5,14 +5,6 @@ import warnings
 
 import django.conf
 
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-
-# Sentry error logging setup
-sentry_sdk.init(
-    dsn="https://02ac52f4875649c79aa6dda8c38c1906@sentry.io/1551944",
-    integrations=[DjangoIntegration()]
-)
 
 # Env file setup
 ROOT = environ.Path(__file__) - 2  # 2 directories up = tarteel.io/
@@ -43,6 +35,13 @@ DEBUG = True
 # Get the settings from zappa_settings.json
 if ('SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda') or (
         'CI' in os.environ and os.environ['CI'] == 'true'):
+    # Sentry error logging setup. We don't need this in local development.
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    sentry_sdk.init(
+            dsn="https://02ac52f4875649c79aa6dda8c38c1906@sentry.io/1551944",
+            integrations=[DjangoIntegration()]
+    )
     # In dev and prod environments, DEBUG is always False. Local is True
     DEBUG = False
     # Use dev or prod DB accordingly. Local for testing.
@@ -300,7 +299,9 @@ REST_FRAMEWORK = {
     'PAGE_SIZE'                     : 100,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 
 # django-corsheader
