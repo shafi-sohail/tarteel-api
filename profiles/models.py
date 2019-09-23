@@ -39,10 +39,21 @@ class UserAyah(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ('updated_at',)
+
 
 class UserSurah(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     surah = models.ForeignKey('quran.Surah', on_delete=models.PROTECT)
     count = models.PositiveIntegerField(default=0)
+    created_at = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class UserSession(models.Model):
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    surahs = models.ManyToManyField(UserSurah)
+    ayahs = models.ManyToManyField(UserAyah)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
