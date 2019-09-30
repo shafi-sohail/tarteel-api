@@ -232,9 +232,12 @@ else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = env('EMAIL_HOST', str, 'smtp.gmail.com')
-EMAIL_PORT = env('EMAIL_PORT', int, 465)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', str, 'contact.tarteel@gmail.com')
+EMAIL_PORT = env('EMAIL_PORT', int, 587)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', str, 'email@tarteel.io')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', str, 'mysupersecretpassword')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', str, 'webmaster@localhost')
+SERVER_EMAIL = env('SERVER_EMAIL', str, 'root@localhost')
+EMAIL_TIMEOUT = 20
 
 # STATIC
 # ------------------------------------------------------------------------------
