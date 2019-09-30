@@ -1,3 +1,5 @@
+import datetime
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -55,5 +57,6 @@ class UserSession(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     surahs = models.ManyToManyField(UserSurah)
     ayahs = models.ManyToManyField(UserAyah)
+    session_time = models.DurationField(default=datetime.timedelta())
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,4 +1,5 @@
-from itertools import chain
+import datetime
+from typing import Any, Dict, Tuple
 
 from django.forms.models import model_to_dict
 from django.http import HttpResponseBadRequest
@@ -9,12 +10,43 @@ from rest_framework import authentication
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework import generics
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
-from profiles.models import UserAyah, UserSurah, UserSession
+from profiles.models import UserAyah, UserSurah, UserSession, UserProfile
 from profiles.serializers import UserSessionSerializer
-from quran.models import Ayah, Surah
+from quran.models import Ayah
+
+
+def _new_user_ayah(user: UserProfile,  ayah: Ayah, save: bool = True, get_create: bool = False
+                   ) -> Tuple[Dict[str, Any],  bool]:
+    user_ayah, created = UserAyah.objects.get_or_create(user=user, ayah=ayah)
+    user_ayah.count += 1
+    if save:
+        user_ayah.save()
+    if get_create:
+        return user_ayah, created
+    else:
+        return user_ayah
+
+
+def _get_user_session_data(request: Request) -> Dict[str, Any]:
+    data_to_get = ['start_surah', 'start_ayah', 'end_surah', 'end_ayah']
+    data = {}
+    # DataDataDataDataDataDataDataDataDataDataDataDataDataDataDataDataDataDataDataData BATMAN!!
+    for post_data in data_to_get:
+        new_data = request.data.get(post_data, None)
+        if new_data is None:
+            raise ValueError("Missing '{}' field.".format(post_data))
+        else:
+            data[post_data] = new_data
+    # Create the session duration field (Type: datetime.timedelta())
+    req_session_time = request.data.get('session_time', None)
+    if req_session_time is None:
+        raise ValueError('Missing \'session_time\' field.')
+    data['session_time'] = datetime.timedelta(seconds=req_session_time)
+    return data
 
 
 class FacebookLogin(SocialLoginView):
@@ -61,9 +93,7 @@ class UserAyahView(generics.ListCreateAPIView):
 
         # Check if the field exists. Otherwise create new record.
         user = request.user
-        user_ayah, created = UserAyah.objects.get_or_create(user=user, ayah=ayah)
-        user_ayah.count += 1
-        user_ayah.save()
+        user_ayah = _new_user_ayah(user=user, ayah=ayah)
         result = model_to_dict(user_ayah)
         return Response(result, status=status.HTTP_201_CREATED, content_type="application/json")
 
@@ -103,18 +133,12 @@ class UserSessionView(generics.ListCreateAPIView):
 
     def post(self, request, *args, **kwargs):
         """Creates a new session entry for the user."""
-        data_to_get = ['start_surah', 'start_ayah', 'end_surah', 'end_ayah']
-        data = {}
-        # DataDataDataDataDataDataDataDataDataDataDataDataDataDataDataDataDataDataDataData BATMAN!!
-        for post_data in data_to_get:
-            new_data = request.data.get(post_data, None)
-            if new_data is None:
-                return HttpResponseBadRequest("Missing '{}' field.".format(post_data))
-            else:
-                data[post_data] = new_data
+        # Parse the request data, returning a bad request accordingly.
+        try:
+            data = _get_user_session_data(request=request)
+        except ValueError as e:
+            return HttpResponseBadRequest(str(e))
 
-        user = request.user
-        surahs = Surah.objects.filter(number__range=(data['start_surah'], data['end_surah']))
         # If we only have one surah, get all the ayah's in that surah
         if data.get('start_surah') == data.get('end_surah'):
             ayahs = Ayah.objects.filter(
@@ -132,10 +156,18 @@ class UserSessionView(generics.ListCreateAPIView):
             ayahs.union(Ayah.objects.filter(chapter_id__number=data.get('end_surah'),
                                             verse_number__lte=data.get('end_ayah')))
 
-        data = {'user': user, 'surahs': surahs, 'ayahs': ayahs}
-        serializer = UserSessionSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return HttpResponseBadRequest('Serializer data is not valid.')
+        # Construct the new session instance
+        user = request.user
+        user_ayahs = [_new_user_ayah(user=user, ayah=a) for a in ayahs]
+        user_surahs = UserSurah.objects.filter(
+            user=user,
+            surah__number__range=(data['start_surah'], data['end_surah']))
+        session_time = data.get('session_time')
+        new_user_session = UserSession(user=user, session_time=session_time)
+        new_user_session.save()
+        new_user_session.ayahs.add(*user_ayahs)
+        new_user_session.surahs.add(*user_surahs)
+        new_user_session.save()
+
+        serialized_result = UserSessionSerializer(new_user_session)
+        return Response(serialized_result.data, status=status.HTTP_201_CREATED)

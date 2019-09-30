@@ -9,21 +9,28 @@ class UserAyahListSerializer(serializers.ModelSerializer):
 
 
 class UserAyahDetailSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = UserAyah
         fields = ['user', 'ayah', 'count']
 
 
+class UserAyahSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserAyah
+        exclude = ['user']
+
+
 class UserSurahSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSurah
-        fields = ['user' 'surah', 'count']
+        exclude = ['user']
 
 
 class UserSessionSerializer(serializers.ModelSerializer):
+    surahs = UserSurahSerializer(many=True)
+    ayahs = UserAyahSerializer(many=True)
 
     class Meta:
         model = UserSession
-        fields = ['user', 'surahs', 'ayahs']
+        exclude = ['user']
         depth = 1
