@@ -28,6 +28,7 @@ ALLOWED_HOSTS = ['www.tarteel.io', 'tarteel.io', '.tarteel.io', '0.0.0.0', '127.
 
 # GENERAL
 # ------------------------------------------------------------------------------
+SECRET_KEY = env('SECRET_KEY', str, default='development_security_key')
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 # The DEBUG flag is used to determine the following:
 # 1. Site ID
