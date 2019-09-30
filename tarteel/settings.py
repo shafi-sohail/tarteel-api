@@ -28,10 +28,12 @@ ALLOWED_HOSTS = ['www.tarteel.io', 'tarteel.io', '.tarteel.io', '0.0.0.0', '127.
 
 # GENERAL
 # ------------------------------------------------------------------------------
-SECRET_KEY = env('SECRET_KEY', str, default='development_security_key')
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
+# The DEBUG flag is used to determine the following:
+# 1. Site ID
+# 2. Email Backend
 DEBUG = True
-# DEBUG = env('DEBUG', bool, default=True)
+
 # Get the settings from zappa_settings.json
 if ('SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda') or (
         'CI' in os.environ and os.environ['CI'] == 'true'):
@@ -55,6 +57,7 @@ if ('SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda') or 
 else:
     LOCAL_DEV = True
     USE_LOCAL_DB = True
+    DEBUG = False
 
 # Local time zone: http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 TIME_ZONE = env('TIME_ZONE', str, default='UTC')
