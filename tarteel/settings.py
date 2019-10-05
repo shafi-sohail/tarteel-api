@@ -5,14 +5,6 @@ import warnings
 
 import django.conf
 
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-
-# Sentry error logging setup
-sentry_sdk.init(
-    dsn="https://02ac52f4875649c79aa6dda8c38c1906@sentry.io/1551944",
-    integrations=[DjangoIntegration()]
-)
 
 # Env file setup
 ROOT = environ.Path(__file__) - 2  # 2 directories up = tarteel.io/
@@ -33,16 +25,26 @@ ALLOWED_HOSTS = ['www.tarteel.io', 'tarteel.io', '.tarteel.io', '0.0.0.0', '127.
                  env('EC2_IP', str, default=''), env('ELB_IP', str, default=''),
                  env('PROD_GW_IP', str, default=''), env('DEV_GW_IP', str, default=''),
                  'testserver', 'localhost']
+SECRET_KEY = env('SECRET_KEY', str, 'mysupersecretkey')
 
 # GENERAL
 # ------------------------------------------------------------------------------
-SECRET_KEY = env('SECRET_KEY', str, default='development_security_key')
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
+# The DEBUG flag is used to determine the following:
+# 1. Site ID
+# 2. Email Backend
 DEBUG = True
-# DEBUG = env('DEBUG', bool, default=True)
+
 # Get the settings from zappa_settings.json
 if ('SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda') or (
         'CI' in os.environ and os.environ['CI'] == 'true'):
+    # Sentry error logging setup. We don't need this in local development.
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    sentry_sdk.init(
+            dsn="https://02ac52f4875649c79aa6dda8c38c1906@sentry.io/1551944",
+            integrations=[DjangoIntegration()]
+    )
     # In dev and prod environments, DEBUG is always False. Local is True
     DEBUG = False
     # Use dev or prod DB accordingly. Local for testing.
@@ -220,6 +222,7 @@ SOCIALACCOUNT_PROVIDERS = {
 LOGIN_REDIRECT_URL = env('LOGIN_REDIRECT_URL', str, '/')
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_USERNAME_REQUIRED = True
 AUTH_USER_MODEL = "profiles.UserProfile"
 
@@ -231,11 +234,16 @@ if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# Note that EMAIL_USE_TLS/EMAIL_USE_SSL are mutually exclusive, so only set one of to True.
 EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
 EMAIL_HOST = env('EMAIL_HOST', str, 'smtp.gmail.com')
-EMAIL_PORT = env('EMAIL_PORT', int, 465)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', str, 'contact.tarteel@gmail.com')
+EMAIL_PORT = env('EMAIL_PORT', int, 587)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', str, 'email@tarteel.io')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', str, 'mysupersecretpassword')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', str, 'webmaster@localhost')
+SERVER_EMAIL = env('SERVER_EMAIL', str, 'root@localhost')
+EMAIL_TIMEOUT = 20
 
 # STATIC
 # ------------------------------------------------------------------------------
@@ -300,7 +308,9 @@ REST_FRAMEWORK = {
     'PAGE_SIZE'                     : 100,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 
 # django-corsheader

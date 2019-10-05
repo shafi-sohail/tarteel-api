@@ -11,8 +11,8 @@ from restapi.views.site import redirect_to_tarteelio
 
 
 urlpatterns = [
-    path('', redirect_to_tarteelio, name='homepage-redirect'),
     # Rest API v1
+    path('v1/', include('profiles.urls')),
     path('v1/', include('restapi.urls')),
     path('v1/', include('evaluation.urls')),
     path('v1/quran/', include('quran.urls')),
@@ -29,10 +29,9 @@ urlpatterns = [
     # Authentication: DRF Auth URLs and user token generation
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api-token-auth/', authviews.obtain_auth_token),
-    # Django-allauth and rest-auth
-    path('', include('profiles.urls')),
     # Pinax Badges
-    path('badges/', include("pinax.badges.urls", namespace="pinax_badges")),
+    path('v1/badges/', include("pinax.badges.urls", namespace="pinax_badges")),
+    path('', redirect_to_tarteelio, name='homepage-redirect'),
 ]
 
 if settings.DEBUG:

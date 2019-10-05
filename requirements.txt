@@ -1,8 +1,8 @@
 awscli==1.16.152
 boto3==1.9.152
-djangorestframework==3.9.4
-django==2.2.4
-django-allauth==0.38.0
+djangorestframework==3.10.3
+django==2.2.5
+django-allauth==0.40.0
 django-cors-headers==3.1.0
 django-extensions==2.1.6
 django-filter==2.1.0
