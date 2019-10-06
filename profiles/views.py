@@ -64,7 +64,7 @@ class UserAyahView(generics.ListCreateAPIView):
     Requires user authentication.
     """
 
-    authentication_classes = (authentication.TokenAuthentication,)
+    authentication_classes = (authentication.SessionAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
     pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
 
@@ -105,7 +105,7 @@ class UserSurahView(generics.ListAPIView):
     Requires user authentication.
     """
 
-    authentication_classes = (authentication.TokenAuthentication,)
+    authentication_classes = (authentication.SessionAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
     pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
 
@@ -119,7 +119,7 @@ class UserSurahView(generics.ListAPIView):
 
 
 class UserSessionView(generics.ListCreateAPIView):
-    authentication_classes = (authentication.TokenAuthentication,)
+    authentication_classes = (authentication.SessionAuthentication,)
     permission_classes = (permissions.IsAuthenticated,)
     pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
 

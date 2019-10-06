@@ -1,10 +1,27 @@
 # -*- coding: utf-8 -*-
 import environ
+import logging
 import os
 import warnings
 
 import django.conf
 
+logger = logging.getLogger('django')
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+        },
+    },
+}
 
 # Env file setup
 ROOT = environ.Path(__file__) - 2  # 2 directories up = tarteel.io/
@@ -38,6 +55,7 @@ DEBUG = True
 # Get the settings from zappa_settings.json
 if ('SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda') or (
         'CI' in os.environ and os.environ['CI'] == 'true'):
+    print('Using Lambda/CI Environment')
     # Sentry error logging setup. We don't need this in local development.
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -45,6 +63,7 @@ if ('SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda') or 
             dsn="https://02ac52f4875649c79aa6dda8c38c1906@sentry.io/1551944",
             integrations=[DjangoIntegration()]
     )
+    print('Sentry SDK loaded')
     # In dev and prod environments, DEBUG is always False. Local is True
     DEBUG = False
     # Use dev or prod DB accordingly. Local for testing.
@@ -56,8 +75,9 @@ if ('SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda') or 
         USE_LOCAL_DB = True
 # Local development instead
 else:
+    print('Local development environment')
     LOCAL_DEV = True
-    USE_LOCAL_DB = True
+    USE_DEV_DB = True
 
 # Local time zone: http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 TIME_ZONE = env('TIME_ZONE', str, default='UTC')
@@ -269,6 +289,8 @@ MEDIA_URL = '/media/'
 # https://simpleisbetterthancomplex.com/tutorial/2017/08/01/how-to-setup-amazon-s3-in-a-django-project.html
 AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', str, 'tarteel-frontend-dev')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', str, '')
+AWS_ACCESS_KEY_S3 = env('AWS_ACCESS_KEY_S3', str, '')
+AWS_SECRET_ACCESS_KEY_S3 = env('AWS_SECRET_ACCESS_KEY_S3', str, '')
 AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', str, '')
 AWS_QUERYSTRING_EXPIRE = env('AWS_QUERYSTRING_EXPIRE', str, '157784630')
 AWS_DEFAULT_ACL = None
@@ -302,14 +324,13 @@ REST_FRAMEWORK = {
         # 'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.JSONRenderer',
     ),
-    'DEFAULT_FILTER_BACKENDS'       : (
-    'django_filters.rest_framework.DjangoFilterBackend',),
+    'DEFAULT_FILTER_BACKENDS'       : ('django_filters.rest_framework.DjangoFilterBackend',),
     'DEFAULT_PAGINATION_CLASS'      : 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE'                     : 100,
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-    ),
+    # 'DEFAULT_AUTHENTICATION_CLASSES': (
+    #     'rest_framework.authentication.TokenAuthentication',
+    #     'rest_framework.authentication.SessionAuthentication',
+    # ),
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 
