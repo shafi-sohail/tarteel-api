@@ -1,25 +1,32 @@
-# System Imports
 from collections import defaultdict
 import datetime
 import json
 import os
 import random
 from urllib.request import urlopen
-# Django
+
+
 from django.db.models import Count
+from django.conf import settings
 from django.http import HttpResponseRedirect
-# Django Rest Framework
+import boto3
+import botocore
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-# Tarteel Apps
+
 from .utils import _sort_recitations_dict_into_lists
 from restapi.models import AnnotatedRecording, DemographicInformation
 from evaluation.models import Evaluation
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TOTAL_AYAH_NUM = 6236
+BUCKET_NAME = 'tarteel-static'
+s3 = boto3.client('s3',
+                  aws_access_key_id=settings.AWS_ACCESS_KEY_S3,
+                  aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY_S3,
+                  config=botocore.config.Config(s3={'addressing_style': 'path'}))
 
 
 class About(APIView):
@@ -151,19 +158,15 @@ class GetSurah(APIView):
         :rtype: JsonResponse
         """
         # Load the Uthmani Quran from JSON
-        quran_data_url = 'https://s3.amazonaws.com/zappa-tarteel-static/data.json'
-        data_response = urlopen(quran_data_url)
-        json_data = data_response.read()
-        json_str = json_data.decode('utf-8-sig')
+        file = s3.get_object(Bucket=BUCKET_NAME, Key='data.json')
+        json_str = file['Body'].read().decode('utf-8-sig')
         quran = json.loads(json_str)
-
-        ayah_list = quran[surah_num]
+        ayah_list = quran[str(surah_num)]
 
         res = {
             'chapter_id': surah_num,
             'ayahs': ayah_list,
         }
-
         return Response(res)
 
 
