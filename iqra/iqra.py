@@ -5,6 +5,9 @@ import os
 from typing import Dict, Optional, List, Type, Union
 from urllib.request import urlopen
 
+import boto3
+import botocore
+from django.conf import settings
 from whoosh.index import open_dir
 from whoosh.qparser import AndGroup, OrGroup
 from whoosh.qparser import QueryParser, MultifieldParser
@@ -13,6 +16,12 @@ from whoosh.searching import Results, Searcher
 
 from .special_cases import SPECIAL_CASES
 
+BUCKET_NAME = 'tarteel-static'
+s3 = boto3.client('s3',
+                  aws_access_key_id=settings.AWS_ACCESS_KEY_S3,
+                  aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY_S3,
+                  config=botocore.config.Config(s3={'addressing_style': 'path'}))
+
 
 class Iqra(object):
 
@@ -20,7 +29,6 @@ class Iqra(object):
         root_dir = os.path.abspath(os.path.dirname(__file__))
         index_dir = os.path.join(root_dir, directory)
         self._ix = open_dir(index_dir)
-        self._quranFilePath = 'https://s3.amazonaws.com/zappa-tarteel-static/iqra_quran/'
 
     def _get_response_object_from_params(self,
                                          query_text: str,
@@ -39,16 +47,14 @@ class Iqra(object):
         """Utility wrapper for empty response."""
         return self._get_response_object_from_params(value, [], [], [])
 
-    def _get_translation_from_url(self, translation: str, encoding: str = 'utf-8') -> Dict:
-        """Downloads JSON from URL and converts it to python dict
-        :param translation: Filename without the .json extension
+    def _get_translation_from_url(self, translation: str, encoding: str = 'utf-8') -> List:
+        """Downloads JSON from URL and converts it to a Python object.
+        :param translation: Filename without the .json extension.
         :param encoding: The string encoding. Arabic uses utf-8.
-        :return: The JSON as a python dict
+        :return: The JSON as a Python object.
         """
-        file_url = self._quranFilePath + translation + '.json'
-        data_response = urlopen(file_url)
-        json_data = data_response.read()
-        json_str = json_data.decode(encoding)
+        file = s3.get_object(Bucket=BUCKET_NAME, Key='iqra_quran/{}.json'.format(translation))
+        json_str = file['Body'].read().decode(encoding)
         return json.loads(json_str)
 
     def _get_matches_from_results(self, results: Results, translation: str) -> List:
