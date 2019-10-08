@@ -188,7 +188,7 @@ class Iqra(object):
                         value,
                         final_matches,
                         # `term` is a tuple where the second index contains the matching term.
-                        [term[1] for term in matched_terms],
+                        [term[1].decode('utf-8') for term in matched_terms],
                         suggestions
                     )
 
