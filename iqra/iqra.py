@@ -136,20 +136,37 @@ class Iqra(object):
                 )
 
             if not is_single_word_query:
-                results = self._parse_and_search(searcher, 'simple_ayah', value, limit, True)
+                parser = QueryParser("simple_ayah", self._ix.schema, group=OrGroup)
+                parser.remove_plugin_class(FieldsPlugin)
+                parser.remove_plugin_class(WildcardPlugin)
+                query = parser.parse(value)
+                results = searcher.search(query, terms=True, limit=limit)
                 if not results:
-                    results = self._parse_and_search(searcher, 'roots', value, limit, True)
+                    parser = QueryParser("roots", self._ix.schema, group=OrGroup)
+                    parser.remove_plugin_class(FieldsPlugin)
+                    parser.remove_plugin_class(WildcardPlugin)
+                    query = parser.parse(value)
+                    results = searcher.search(query, terms=True, limit=limit)
                     if not results:
-                        results = self._parse_and_search(searcher, 'decomposed_ayah', value,
-                                                         limit, True)
+                        parser = QueryParser("decomposed_ayah", self._ix.schema, group=OrGroup)
+                        parser.remove_plugin_class(FieldsPlugin)
+                        parser.remove_plugin_class(WildcardPlugin)
+                        query = parser.parse(value)
+                        results = searcher.search(query, terms=True, limit=limit)
+
                 if results:
                     matched_terms = results.matched_terms()
                     first_results = None
                     if len(matched_terms) > 1 and results.scored_length() > 1:
                         if results[1].score > 10:
                             first_results = results
-                        results = self._parse_and_search(searcher, 'simple_ayah',
-                                                         results[0]['simple_ayah'], limit)
+
+                        parser = QueryParser('simple_ayah', self._ix.schema)
+                        parser.remove_plugin_class(FieldsPlugin)
+                        parser.remove_plugin_class(WildcardPlugin)
+                        query = parser.parse(results[0]['simple_ayah'])
+                        results = searcher.search(query, limit=limit)
+
                     final_matches = self._get_matches_from_results(results, translation)
 
                     suggestions = []
