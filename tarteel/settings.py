@@ -75,9 +75,12 @@ if ('SERVERTYPE' in os.environ and os.environ['SERVERTYPE'] == 'AWS Lambda') or 
         USE_LOCAL_DB = True
 # Local development instead
 else:
-    print('Local development environment')
     LOCAL_DEV = True
-    USE_DEV_DB = True
+    USE_LOCAL_DB = True
+
+if LOCAL_DEV: print('Local development environment.')
+if USE_LOCAL_DB: print('Using local DB.')
+if USE_DEV_DB: print('Using dev DB.')
 
 # Local time zone: http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 TIME_ZONE = env('TIME_ZONE', str, default='UTC')

@@ -3,12 +3,12 @@ import datetime
 import json
 import os
 import random
-from urllib.request import urlopen
-
 
 from django.db.models import Count
 from django.conf import settings
 from django.http import HttpResponseRedirect
+from django.http import JsonResponse
+from django.middleware.csrf import get_token
 import boto3
 import botocore
 from rest_framework.authentication import TokenAuthentication
@@ -289,3 +289,7 @@ def redirect_to_tarteelio(request):
     """Simple redirect to the home page."""
     return HttpResponseRedirect("https://www.tarteel.io")
 
+
+def get_csrf_token(request):
+    """Simple request for a CSRF token."""
+    return JsonResponse({'csrfToken': get_token(request)})

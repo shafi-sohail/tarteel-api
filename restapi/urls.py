@@ -17,6 +17,7 @@ urlpatterns = [
     re_path(r'^profile/(?P<session_key>[\w-]+)/', views.site.Profile.as_view(),
             name='profile_api'),
     path('download-audio/', views.site.DownloadAudio.as_view()),
+    path('csrf_token/', views.site.get_csrf_token)
 ]
 
 urlpatterns += router.urls

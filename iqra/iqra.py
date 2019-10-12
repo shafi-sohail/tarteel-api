@@ -3,7 +3,6 @@ import json
 from operator import itemgetter
 import os
 from typing import Dict, Optional, List, Type, Union
-from urllib.request import urlopen
 
 import boto3
 import botocore
@@ -87,41 +86,17 @@ class Iqra(object):
         query = parser.parse(value)
         return searcher.search(query, terms=terms, limit=limit)
 
-    def get_special_cases_results(self, value: str, translation: str) -> Union[Dict, None]:
-        """Takes in a query and compares it to hard-coded special cases.
-        The special cases are for the "Miracle Letters"
+    def adjust_for_special_cases(self, value: str) -> str:
+        """Takes in a query and adjusts it based on hard-coded special cases.
+        The special cases are for the "Miracle Letters.
 
-        :param value: The ayah text.
-        :param translation: The requested translation type
-        :return: A list of ayah matches if there is a match, otherwise returns None
-        :rtype: dict, None
+        :param value: The ayah text to adjust.
+        :return: A new query with the special cases replaced.
         """
-        matching_ayah_list = []
         for case in SPECIAL_CASES:
-            if case[0] == value:
-                value = case[1]
-                matching_ayah_list = case[2]
-
-        if len(matching_ayah_list) > 0:
-            allowed_results = []
-            for matching_ayah in matching_ayah_list:
-                allowed_results.append("surah_num:{} AND ayah_num:{}".format(
-                    str(matching_ayah[0]), str(matching_ayah[1])))
-
-            parser = MultifieldParser(["surah_num", "ayah_num"], self._ix.schema)
-            parser.remove_plugin_class(PhrasePlugin)
-            parser.add_plugin(SequencePlugin())
-            query = parser.parse(" OR ".join(allowed_results))
-            with self._ix.searcher() as searcher:
-                results = searcher.search(query, limit=7)
-                return self._get_response_object_from_params(
-                        value,
-                        self._get_matches_from_results(results, translation),
-                        [],
-                        []
-                )
-        else:
-            return None
+            if case[0] in value:
+                value = value.replace(case[0], case[1])
+        return value
 
     def get_result(self, value: str, translation: str, limit: Optional[int] = None) -> Dict:
         """ Checks to see if there are any special case results then searches for an Ayah with
@@ -133,9 +108,7 @@ class Iqra(object):
         :return: A dictionary with query text, matches, matched terms, and suggestions.
         """
         # Start with special cases
-        special_cases_results = self.get_special_cases_results(value, translation)
-        if special_cases_results:
-            return special_cases_results
+        value = self.adjust_for_special_cases(value)
 
         # Otherwise execute full search
         with self._ix.searcher() as searcher:
@@ -163,20 +136,37 @@ class Iqra(object):
                 )
 
             if not is_single_word_query:
-                results = self._parse_and_search(searcher, 'simple_ayah', value, limit, True)
+                parser = QueryParser("simple_ayah", self._ix.schema, group=OrGroup)
+                parser.remove_plugin_class(FieldsPlugin)
+                parser.remove_plugin_class(WildcardPlugin)
+                query = parser.parse(value)
+                results = searcher.search(query, terms=True, limit=limit)
                 if not results:
-                    results = self._parse_and_search(searcher, 'roots', value, limit, True)
+                    parser = QueryParser("roots", self._ix.schema, group=OrGroup)
+                    parser.remove_plugin_class(FieldsPlugin)
+                    parser.remove_plugin_class(WildcardPlugin)
+                    query = parser.parse(value)
+                    results = searcher.search(query, terms=True, limit=limit)
                     if not results:
-                        results = self._parse_and_search(searcher, 'decomposed_ayah', value,
-                                                         limit, True)
+                        parser = QueryParser("decomposed_ayah", self._ix.schema, group=OrGroup)
+                        parser.remove_plugin_class(FieldsPlugin)
+                        parser.remove_plugin_class(WildcardPlugin)
+                        query = parser.parse(value)
+                        results = searcher.search(query, terms=True, limit=limit)
+
                 if results:
                     matched_terms = results.matched_terms()
                     first_results = None
                     if len(matched_terms) > 1 and results.scored_length() > 1:
                         if results[1].score > 10:
                             first_results = results
-                        results = self._parse_and_search(searcher, 'simple_ayah',
-                                                         results[0]['simple_ayah'], limit)
+
+                        parser = QueryParser('simple_ayah', self._ix.schema)
+                        parser.remove_plugin_class(FieldsPlugin)
+                        parser.remove_plugin_class(WildcardPlugin)
+                        query = parser.parse(results[0]['simple_ayah'])
+                        results = searcher.search(query, limit=limit)
+
                     final_matches = self._get_matches_from_results(results, translation)
 
                     suggestions = []
